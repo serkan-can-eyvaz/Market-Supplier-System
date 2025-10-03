@@ -1,0 +1,63 @@
+pipeline {
+    agent any
+
+    environment {
+        IMAGE_NAME = "market-supplier-backend"
+        CONTAINER_NAME = "market-supplier-backend"
+        GIT_CREDENTIALS_ID = "0b91579b-700e-4d1d-a0cf-0d55386b088f"
+        GIT_REPO = "git@github.com:serkan-can-eyvaz/waterWebApp.git"
+    }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                sshagent (credentials: ["${GIT_CREDENTIALS_ID}"]) {
+                    git branch: 'main', url: "${GIT_REPO}"
+                }
+            }
+        }
+
+        stage('Build Jar') {
+            steps {
+                dir('market-supplier-backend') {
+                    sh "mvn clean package -DskipTests"
+                }
+            }
+        }
+
+        stage('Clean Docker') {
+            steps {
+                script {
+                    // Durdurulmuş container'ları sil
+                    sh "docker container prune -f"
+                    // Kullanılmayan image'ları sil
+                    sh "docker image prune -af"
+                    // Kullanılmayan volume'leri sil (isteğe bağlı)
+                    sh "docker volume prune -f"
+                }
+            }
+        }
+
+        stage('Build & Deploy with Docker Compose') {
+            steps {
+                dir('market-supplier-backend') {
+                    script {
+                        sh "docker compose down"
+                        sh "docker compose build"
+                        sh "docker compose up -d"
+                    }
+                }
+            }
+        }
+    }
+
+    post {
+        success {
+            echo "birdamlapaylas.com Backend, Database ve Nginx container'ları başarıyla ayağa kalktı!"
+            echo "Backend API: http://localhost:8480"
+        }
+        failure {
+            echo "birdamlapaylas.com Backend build veya deploy başarısız!"
+        }
+    }
+}

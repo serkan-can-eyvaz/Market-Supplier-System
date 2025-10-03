@@ -1,0 +1,30 @@
+version: 1
+default_intent: chat
+confidence_threshold: 0.75
+intents:
+  - name: help
+    keywords: ["yardım", "yardim", "help", "nasıl", "nasil", "komutlar", "menü", "menu"]
+    action: chat
+    response: "Size nasıl yardımcı olabilirim? Örnek: '2 koli Cola', 'sepet', 'onayla'"
+
+  - name: navigate
+    keywords: ["devam", "sonraki", "önceki", "daha fazla"]
+    action: chat
+
+  - name: add_to_cart
+    keywords: ["ekle", "sepete", "al", "sipariş ver", "siparis ver"]
+    action: cart.add
+
+  - name: show_cart
+    keywords: ["sepet", "sepeti göster", "sepetim", "ne var"]
+    action: cart.show
+
+  - name: confirm_order
+    keywords: ["onayla", "onay", "tamamla", "onaylıyorum"]
+    action: order.confirm
+
+  - name: cancel_order
+    keywords: ["iptal", "vazgeç", "vazgectim", "iptal et"]
+    action: order.cancel
+
+
