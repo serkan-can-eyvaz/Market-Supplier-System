@@ -5,14 +5,14 @@ pipeline {
         IMAGE_NAME = "market-supplier-backend"
         CONTAINER_NAME = "market-supplier-backend"
         GIT_CREDENTIALS_ID = "0b91579b-700e-4d1d-a0cf-0d55386b088f"
-        GIT_REPO = "git@github.com:serkan-can-eyvaz/waterWebApp.git"
+        GIT_REPO = "git@github.com:serkan-can-eyvaz/Market-Supplier-System.git"
     }
 
     stages {
         stage('Checkout') {
             steps {
                 sshagent (credentials: ["${GIT_CREDENTIALS_ID}"]) {
-                    git branch: 'main', url: "${GIT_REPO}"
+                    git branch: 'deploy-branch', url: "${GIT_REPO}"
                 }
             }
         }
