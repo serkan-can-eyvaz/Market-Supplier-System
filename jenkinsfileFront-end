@@ -19,51 +19,43 @@ pipeline {
 
         stage('Build Frontend') {
             steps {
-                dir('market-supplier-web') {
-                    sh '''
-                        npm install
-                        npm run build
-                    '''
-                }
+                // Root dizinde build alınır
+                sh "npm install"
+                sh "npm run build"
             }
         }
 
         stage('Check Build Output') {
             steps {
-                dir('market-supplier-web') {
-                    sh 'ls -la build || echo "Build klasörü bulunamadı!"'
-                }
+                sh 'ls -la build/'
             }
         }
 
         stage('Copy Build to Nginx Directory') {
             steps {
-                dir('market-supplier-web') {
-                    sh '''
-                        TARGET_DIR="/var/lib/jenkins/workspace/market-supplier-web/market-supplier-web-build/market-supplier-web"
+                sh '''
+                    TARGET_DIR="/var/lib/jenkins/workspace/market-supplier-web/market-supplier-web-build"
 
-                        # Hedef klasör yoksa oluştur
-                        mkdir -p "$TARGET_DIR"
+                    # Hedef klasör yoksa oluştur
+                    mkdir -p "$TARGET_DIR"
 
-                        # Eski dosyaları sil
-                        rm -rf "$TARGET_DIR"/*
+                    # Eski build dosyalarını sil
+                    rm -rf "$TARGET_DIR"/*
 
-                        # Yeni build çıktısını kopyala
-                        cp -r build/* "$TARGET_DIR"/
-                    '''
-                }
+                    # Yeni build çıktısını kopyala
+                    cp -r build/* "$TARGET_DIR"/
+                '''
             }
         }
     }
 
     post {
         success {
-            echo "✅ birdamlapaylas.com Frontend build ve kopyalama işlemi tamamlandı!"
-            echo "🌐 Backend API: http://localhost:9095"
-            echo "💻 Frontend: http://localhost:80"
+            echo "✅ market-supplier-web frontend build ve kopyalama işlemi tamamlandı!"
+            echo "Frontend: http://localhost:80"
         }
         failure {
-            echo "❌ birdamlapaylas.com Frontend build veya deploy başarısız!"
+            echo "❌ market-supplier-web frontend build veya deploy başarısız!"
         }
     }
 }
