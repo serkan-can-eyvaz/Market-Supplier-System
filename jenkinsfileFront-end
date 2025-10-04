@@ -38,16 +38,11 @@ pipeline {
             steps {
                 dir('market-supplier-web') {
                     sh '''
-                        TARGET_DIR="/var/lib/jenkins/workspace/market-supplier-web/market-supplier-web-build/market-supplier-web"
+                        if [ ! -d "/var/lib/jenkins/workspace/market-supplier-web/market-supplier-web-build/market-supplier-web" ]; then
+                            mkdir -p /var/lib/jenkins/workspace/market-supplier-web/market-supplier-web-build/market-supplier-web
+                        fi
 
-                        # Hedef klasörü oluştur
-                        mkdir -p "$TARGET_DIR"
-
-                        # Eski dosyaları temizle
-                        rm -rf "$TARGET_DIR"/*
-
-                        # Yeni build çıktısını kopyala
-                        cp -r build/* "$TARGET_DIR"/
+                        cp -r build/* /var/lib/jenkins/workspace/market-supplier-web/market-supplier-web-build/market-supplier-web/
                     '''
                 }
             }
