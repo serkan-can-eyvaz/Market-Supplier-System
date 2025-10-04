@@ -4,6 +4,7 @@ import { ThemeProvider, createTheme } from '@mui/material/styles';
 import { CssBaseline, Box } from '@mui/material';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import Layout from './components/Layout';
+import LandingPage from './pages/LandingPage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import DashboardPage from './pages/DashboardPage';
@@ -26,8 +27,8 @@ import SettingsPage from './pages/SettingsPage';
 // Material-UI theme
 const theme = createTheme({
   palette: {
-    primary: { main: '#1976d2' },
-    secondary: { main: '#dc004e' },
+    primary: { main: '#2E7D32' },
+    secondary: { main: '#4CAF50' },
     background: { default: '#f5f5f5' },
   },
   typography: {
@@ -339,8 +340,11 @@ const AppRoutes: React.FC = () => {
         } 
       />
 
-      {/* Default Route */}
-      <Route path="/" element={<Navigate to="/dashboard" replace />} />
+      {/* Landing Page - Public */}
+      <Route path="/" element={<LandingPage />} />
+      
+      {/* Default Route for authenticated users */}
+      <Route path="/app" element={<Navigate to="/dashboard" replace />} />
     </Routes>
   );
 };

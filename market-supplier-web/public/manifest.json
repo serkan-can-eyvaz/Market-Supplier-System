@@ -1,6 +1,7 @@
 {
-  "short_name": "React App",
-  "name": "Create React App Sample",
+  "short_name": "Tedarik Asistanı",
+  "name": "Tedarik Asistanı - AI Destekli Sipariş ve Teslimat Yönetimi",
+  "description": "Market sahipleri ile tedarikçileri buluşturan AI destekli WhatsApp asistanı. Otomatik rota planlama, gerçek zamanlı takip ve akıllı sipariş yönetimi.",
   "icons": [
     {
       "src": "favicon.ico",
@@ -18,8 +19,12 @@
       "sizes": "512x512"
     }
   ],
-  "start_url": ".",
+  "start_url": "/",
   "display": "standalone",
-  "theme_color": "#000000",
-  "background_color": "#ffffff"
+  "theme_color": "#2E7D32",
+  "background_color": "#ffffff",
+  "orientation": "portrait-primary",
+  "categories": ["business", "productivity", "utilities"],
+  "lang": "tr",
+  "scope": "/"
 }
