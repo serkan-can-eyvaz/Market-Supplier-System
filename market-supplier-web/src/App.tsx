@@ -27,8 +27,8 @@ import SettingsPage from './pages/SettingsPage';
 // Material-UI theme
 const theme = createTheme({
   palette: {
-    primary: { main: '#2E7D32' },
-    secondary: { main: '#4CAF50' },
+    primary: { main: '#667eea' },
+    secondary: { main: '#764ba2' },
     background: { default: '#f5f5f5' },
   },
   typography: {

@@ -17,6 +17,7 @@ import {
   Slide,
   Zoom
 } from '@mui/material';
+import { useNavigate } from 'react-router-dom';
 import {
   SmartToy,
   LocalShipping,
@@ -41,6 +42,7 @@ import {
 const LandingPage: React.FC = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const navigate = useNavigate();
   const [activeFeature, setActiveFeature] = useState(0);
 
   useEffect(() => {
@@ -116,7 +118,7 @@ const LandingPage: React.FC = () => {
       {/* Hero Section */}
       <Box
         sx={{
-          background: 'linear-gradient(135deg, #2E7D32 0%, #4CAF50 100%)',
+          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
           color: 'white',
           py: { xs: 8, md: 12 },
           position: 'relative',
@@ -166,9 +168,10 @@ const LandingPage: React.FC = () => {
                     <Button
                       variant="contained"
                       size="large"
+                      onClick={() => navigate('/login')}
                       sx={{
                         bgcolor: 'white',
-                        color: '#2E7D32',
+                        color: '#667eea',
                         px: 4,
                         py: 1.5,
                         fontWeight: 600,
@@ -178,11 +181,12 @@ const LandingPage: React.FC = () => {
                       }}
                     >
                       <WhatsApp sx={{ mr: 1 }} />
-                      Demo İzle
+                      Giriş Yap
                     </Button>
                     <Button
                       variant="outlined"
                       size="large"
+                      onClick={() => window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' })}
                       sx={{
                         borderColor: 'white',
                         color: 'white',
@@ -195,7 +199,7 @@ const LandingPage: React.FC = () => {
                         }
                       }}
                     >
-                      Teknik Detaylar
+                      Hemen Başlayın
                     </Button>
                   </Box>
                 </Box>
@@ -230,7 +234,7 @@ const LandingPage: React.FC = () => {
       {/* Features Section */}
       <Container maxWidth="lg" sx={{ py: 8 }}>
         <Box sx={{ textAlign: 'center', mb: 6 }}>
-          <Typography variant="h2" sx={{ mb: 2, fontWeight: 700, color: '#2E7D32' }}>
+          <Typography variant="h2" sx={{ mb: 2, fontWeight: 700, color: '#667eea' }}>
             Özellikler
           </Typography>
           <Typography variant="h6" sx={{ color: 'text.secondary', maxWidth: 600, mx: 'auto' }}>
@@ -282,7 +286,7 @@ const LandingPage: React.FC = () => {
       {/* Benefits Section */}
       <Box sx={{ bgcolor: '#f8f9fa', py: 8 }}>
         <Container maxWidth="lg">
-          <Typography variant="h2" sx={{ textAlign: 'center', mb: 6, fontWeight: 700, color: '#2E7D32' }}>
+          <Typography variant="h2" sx={{ textAlign: 'center', mb: 6, fontWeight: 700, color: '#667eea' }}>
             Kimler İçin?
           </Typography>
           <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(2, 1fr)' }, gap: 6 }}>
@@ -291,7 +295,7 @@ const LandingPage: React.FC = () => {
                 <Fade in timeout={1000 + index * 300}>
                   <Card sx={{ height: '100%', p: 4 }}>
                     <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
-                      <Avatar sx={{ bgcolor: '#2E7D32', mr: 2 }}>
+                      <Avatar sx={{ bgcolor: '#667eea', mr: 2 }}>
                         {benefit.icon}
                       </Avatar>
                       <Typography variant="h5" sx={{ fontWeight: 600 }}>
@@ -317,7 +321,7 @@ const LandingPage: React.FC = () => {
       {/* Tech Stack Section */}
       <Container maxWidth="lg" sx={{ py: 8 }}>
         <Box sx={{ textAlign: 'center', mb: 6 }}>
-          <Typography variant="h2" sx={{ mb: 2, fontWeight: 700, color: '#2E7D32' }}>
+          <Typography variant="h2" sx={{ mb: 2, fontWeight: 700, color: '#667eea' }}>
             Teknoloji Stack
           </Typography>
           <Typography variant="h6" sx={{ color: 'text.secondary' }}>
@@ -331,8 +335,8 @@ const LandingPage: React.FC = () => {
                 label={tech.name}
                 variant="outlined"
                 sx={{
-                  borderColor: '#2E7D32',
-                  color: '#2E7D32',
+                  borderColor: '#667eea',
+                  color: '#667eea',
                   fontWeight: 500,
                   px: 1
                 }}
@@ -345,7 +349,7 @@ const LandingPage: React.FC = () => {
       {/* CTA Section */}
       <Box
         sx={{
-          background: 'linear-gradient(135deg, #2E7D32 0%, #4CAF50 100%)',
+          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
           color: 'white',
           py: 8
         }}
@@ -361,20 +365,20 @@ const LandingPage: React.FC = () => {
             <Button
               variant="contained"
               size="large"
-              sx={{
-                bgcolor: 'white',
-                color: '#2E7D32',
-                px: 4,
-                py: 1.5,
-                fontWeight: 600,
-                '&:hover': {
-                  bgcolor: '#f5f5f5'
-                }
-              }}
-            >
-              <WhatsApp sx={{ mr: 1 }} />
-              WhatsApp ile Demo
-            </Button>
+                      sx={{
+                        bgcolor: 'white',
+                        color: '#667eea',
+                        px: 4,
+                        py: 1.5,
+                        fontWeight: 600,
+                        '&:hover': {
+                          bgcolor: '#f5f5f5'
+                        }
+                      }}
+                    >
+                      <WhatsApp sx={{ mr: 1 }} />
+                      WhatsApp ile Demo
+                    </Button>
             <Button
               variant="outlined"
               size="large"
@@ -397,7 +401,7 @@ const LandingPage: React.FC = () => {
       </Box>
 
       {/* Footer */}
-      <Box sx={{ bgcolor: '#1B5E20', color: 'white', py: 4 }}>
+      <Box sx={{ bgcolor: '#4a5568', color: 'white', py: 4 }}>
         <Container maxWidth="lg">
           <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(2, 1fr)' }, gap: 4 }}>
             <Box>

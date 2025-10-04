@@ -44,7 +44,7 @@ const RegisterPage: React.FC = () => {
   return (
     <Box sx={{
       minHeight: '100vh',
-      background: 'linear-gradient(135deg, #2E7D32 0%, #4CAF50 100%)',
+      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
@@ -61,7 +61,7 @@ const RegisterPage: React.FC = () => {
           boxShadow: '0 20px 40px rgba(0, 0, 0, 0.1)',
           border: '1px solid rgba(255, 255, 255, 0.2)'
         }}>
-          <Typography component="h1" variant="h4" align="center" gutterBottom sx={{ color: '#2E7D32', fontWeight: 'bold' }}>
+          <Typography component="h1" variant="h4" align="center" gutterBottom sx={{ color: '#667eea', fontWeight: 'bold' }}>
             Tedarik Asistanı
           </Typography>
           <Typography component="h2" variant="h6" align="center" gutterBottom sx={{ mb: 4, color: 'text.secondary' }}>
@@ -153,16 +153,16 @@ const RegisterPage: React.FC = () => {
                     fullWidth
                     size="large"
                     sx={{
-                      background: 'linear-gradient(135deg, #2E7D32 0%, #4CAF50 100%)',
+                      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
                       py: 1.5,
                       fontSize: '1.1rem',
                       fontWeight: 'bold',
                       textTransform: 'none',
                       borderRadius: 2,
-                      boxShadow: '0 8px 25px rgba(46, 125, 50, 0.3)',
+                      boxShadow: '0 8px 25px rgba(102, 126, 234, 0.3)',
                       '&:hover': {
-                        background: 'linear-gradient(135deg, #1B5E20 0%, #388E3C 100%)',
-                        boxShadow: '0 12px 35px rgba(46, 125, 50, 0.4)',
+                        background: 'linear-gradient(135deg, #5a6fd8 0%, #6a4190 100%)',
+                        boxShadow: '0 12px 35px rgba(102, 126, 234, 0.4)',
                         transform: 'translateY(-2px)',
                       }
                     }}
@@ -175,16 +175,16 @@ const RegisterPage: React.FC = () => {
                     size="large"
                     onClick={() => navigate('/login')}
                     sx={{
-                      borderColor: '#2E7D32',
-                      color: '#2E7D32',
+                      borderColor: '#667eea',
+                      color: '#667eea',
                       py: 1.5,
                       fontSize: '1.1rem',
                       fontWeight: 'bold',
                       textTransform: 'none',
                       borderRadius: 2,
                       '&:hover': {
-                        borderColor: '#1B5E20',
-                        backgroundColor: 'rgba(46, 125, 50, 0.04)',
+                        borderColor: '#5a6fd8',
+                        backgroundColor: 'rgba(102, 126, 234, 0.04)',
                       }
                     }}
                   >
