@@ -17,6 +17,19 @@ pipeline {
             }
         }
 
+        stage('Debug Workspace Structure') {
+            steps {
+                sh '''
+                    echo "=== Root workspace contents ==="
+                    ls -la
+                    echo "=== market-supplier-web directory contents ==="
+                    ls -la market-supplier-web/
+                    echo "=== market-supplier-web/public directory contents ==="
+                    ls -la market-supplier-web/public/
+                '''
+            }
+        }
+
         stage('Build Frontend') {
             steps {
                 dir('market-supplier-web') {
