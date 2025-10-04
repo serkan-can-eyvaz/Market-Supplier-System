@@ -41,7 +41,7 @@ pipeline {
                         echo "Contents of public directory:"
                         ls -la public/
                         npm install
-                        npm run build
+                        CI=false npm run build
                     '''
                 }
             }
