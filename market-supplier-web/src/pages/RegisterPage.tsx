@@ -7,6 +7,7 @@ import {
   Button,
   Box,
   Alert,
+  Link,
 } from '@mui/material';
 import { Formik, Form, Field } from 'formik';
 import * as Yup from 'yup';
@@ -41,11 +42,31 @@ const RegisterPage: React.FC = () => {
   };
 
   return (
-    <Container component="main" maxWidth="sm">
-      <Paper elevation={3} sx={{ mt: 8, p: 4 }}>
-        <Typography component="h1" variant="h4" align="center" gutterBottom>
-          Kayıt Ol
-        </Typography>
+    <Box sx={{
+      minHeight: '100vh',
+      background: 'linear-gradient(135deg, #2E7D32 0%, #4CAF50 100%)',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      position: 'relative',
+      overflow: 'hidden'
+    }}>
+      <Container component="main" maxWidth="sm" sx={{ position: 'relative', zIndex: 1 }}>
+        <Paper elevation={3} sx={{ 
+          mt: 0, 
+          p: 4,
+          background: 'rgba(255, 255, 255, 0.95)',
+          backdropFilter: 'blur(20px)',
+          borderRadius: 4,
+          boxShadow: '0 20px 40px rgba(0, 0, 0, 0.1)',
+          border: '1px solid rgba(255, 255, 255, 0.2)'
+        }}>
+          <Typography component="h1" variant="h4" align="center" gutterBottom sx={{ color: '#2E7D32', fontWeight: 'bold' }}>
+            Tedarik Asistanı
+          </Typography>
+          <Typography component="h2" variant="h6" align="center" gutterBottom sx={{ mb: 4, color: 'text.secondary' }}>
+            Hesap Oluştur
+          </Typography>
         
         {error && (
           <Alert severity="error" sx={{ mb: 2 }}>
@@ -131,6 +152,20 @@ const RegisterPage: React.FC = () => {
                     variant="contained"
                     fullWidth
                     size="large"
+                    sx={{
+                      background: 'linear-gradient(135deg, #2E7D32 0%, #4CAF50 100%)',
+                      py: 1.5,
+                      fontSize: '1.1rem',
+                      fontWeight: 'bold',
+                      textTransform: 'none',
+                      borderRadius: 2,
+                      boxShadow: '0 8px 25px rgba(46, 125, 50, 0.3)',
+                      '&:hover': {
+                        background: 'linear-gradient(135deg, #1B5E20 0%, #388E3C 100%)',
+                        boxShadow: '0 12px 35px rgba(46, 125, 50, 0.4)',
+                        transform: 'translateY(-2px)',
+                      }
+                    }}
                   >
                     Kayıt Ol
                   </Button>
@@ -139,6 +174,19 @@ const RegisterPage: React.FC = () => {
                     fullWidth
                     size="large"
                     onClick={() => navigate('/login')}
+                    sx={{
+                      borderColor: '#2E7D32',
+                      color: '#2E7D32',
+                      py: 1.5,
+                      fontSize: '1.1rem',
+                      fontWeight: 'bold',
+                      textTransform: 'none',
+                      borderRadius: 2,
+                      '&:hover': {
+                        borderColor: '#1B5E20',
+                        backgroundColor: 'rgba(46, 125, 50, 0.04)',
+                      }
+                    }}
                   >
                     Giriş Yap
                   </Button>
@@ -148,7 +196,27 @@ const RegisterPage: React.FC = () => {
           )}
         </Formik>
       </Paper>
+      
+      {/* Login Link */}
+      <Box sx={{ textAlign: 'center', mt: 3 }}>
+        <Typography variant="body2" sx={{ color: 'white' }}>
+          Zaten hesabınız var mı?{' '}
+          <Link 
+            component="button" 
+            variant="body2" 
+            onClick={() => navigate('/login')}
+            sx={{ 
+              color: 'white', 
+              textDecoration: 'underline',
+              '&:hover': { textDecoration: 'none' }
+            }}
+          >
+            Giriş Yap
+          </Link>
+        </Typography>
+      </Box>
     </Container>
+    </Box>
   );
 };
 

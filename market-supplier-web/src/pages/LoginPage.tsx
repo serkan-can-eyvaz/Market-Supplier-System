@@ -28,6 +28,7 @@ import {
   Login as LoginIcon,
   Security,
   Speed,
+  SmartToy,
 } from '@mui/icons-material';
 import { useNavigate, Link as RouterLink } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
@@ -75,7 +76,7 @@ const LoginPage: React.FC = () => {
   return (
     <Box sx={{
       minHeight: '100vh',
-      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+      background: 'linear-gradient(135deg, #2E7D32 0%, #4CAF50 100%)',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
@@ -90,9 +91,9 @@ const LoginPage: React.FC = () => {
         right: 0,
         bottom: 0,
         background: `
-          radial-gradient(circle at 20% 80%, rgba(120, 119, 198, 0.3) 0%, transparent 50%),
-          radial-gradient(circle at 80% 20%, rgba(255, 119, 198, 0.3) 0%, transparent 50%),
-          radial-gradient(circle at 40% 40%, rgba(120, 219, 255, 0.2) 0%, transparent 50%)
+          radial-gradient(circle at 20% 80%, rgba(46, 125, 50, 0.3) 0%, transparent 50%),
+          radial-gradient(circle at 80% 20%, rgba(76, 175, 80, 0.3) 0%, transparent 50%),
+          radial-gradient(circle at 40% 40%, rgba(139, 195, 74, 0.2) 0%, transparent 50%)
         `,
         zIndex: 0
       }} />
@@ -109,7 +110,7 @@ const LoginPage: React.FC = () => {
           }}>
             {/* Header Section */}
             <Box sx={{
-              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+              background: 'linear-gradient(135deg, #2E7D32 0%, #4CAF50 100%)',
               color: 'white',
               p: 4,
               textAlign: 'center',
@@ -135,7 +136,7 @@ const LoginPage: React.FC = () => {
                 position: 'relative',
                 zIndex: 1
               }}>
-                <Business sx={{ fontSize: 40 }} />
+                <SmartToy sx={{ fontSize: 40 }} />
               </Avatar>
               
               <Typography variant="h4" sx={{ 
@@ -144,7 +145,7 @@ const LoginPage: React.FC = () => {
                 position: 'relative',
                 zIndex: 1
               }}>
-                Market Supplier System
+                Tedarik Asistanı
               </Typography>
               
               <Typography variant="h6" sx={{ 
@@ -243,16 +244,16 @@ const LoginPage: React.FC = () => {
                       disabled={loading}
                       startIcon={<LoginIcon />}
                       sx={{
-                        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                        background: 'linear-gradient(135deg, #2E7D32 0%, #4CAF50 100%)',
                         py: 1.5,
                         fontSize: '1.1rem',
                         fontWeight: 'bold',
                         textTransform: 'none',
                         borderRadius: 2,
-                        boxShadow: '0 8px 25px rgba(102, 126, 234, 0.3)',
+                        boxShadow: '0 8px 25px rgba(46, 125, 50, 0.3)',
                         '&:hover': {
-                          background: 'linear-gradient(135deg, #5a6fd8 0%, #6a4190 100%)',
-                          boxShadow: '0 12px 35px rgba(102, 126, 234, 0.4)',
+                          background: 'linear-gradient(135deg, #1B5E20 0%, #388E3C 100%)',
+                          boxShadow: '0 12px 35px rgba(46, 125, 50, 0.4)',
                           transform: 'translateY(-2px)',
                         },
                         '&:disabled': {
@@ -348,6 +349,28 @@ const LoginPage: React.FC = () => {
                         </Box>
                       </Box>
                     </Stack>
+                  </Box>
+
+                  {/* Register Link */}
+                  <Box sx={{ textAlign: 'center', mt: 3 }}>
+                    <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                      Hesabınız yok mu?{' '}
+                      <Link 
+                        component={RouterLink} 
+                        to="/register"
+                        sx={{ 
+                          color: '#2E7D32', 
+                          textDecoration: 'none',
+                          fontWeight: 'bold',
+                          '&:hover': { 
+                            textDecoration: 'underline',
+                            color: '#1B5E20'
+                          }
+                        }}
+                      >
+                        Kayıt Olun
+                      </Link>
+                    </Typography>
                   </Box>
                 </Box>
               </Fade>
