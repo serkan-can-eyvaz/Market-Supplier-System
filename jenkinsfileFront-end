@@ -1,0 +1,70 @@
+pipeline {
+    agent any
+
+    environment {
+        IMAGE_NAME = "market-supplier-frontend"
+        CONTAINER_NAME = "market-supplier-frontend"
+        GIT_CREDENTIALS_ID = "0b91579b-700e-4d1d-a0cf-0d55386b088f"
+        GIT_REPO = "git@github.com:serkan-can-eyvaz/Market-Supplier-System.git"
+    }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                sshagent (credentials: ["${GIT_CREDENTIALS_ID}"]) {
+                    git branch: 'deploy-branch', url: "${GIT_REPO}"
+                }
+            }
+        }
+
+        stage('Build Frontend') {
+            steps {
+                dir('front-end') {
+                    sh "npm install"
+                    sh "npm run build"
+                }
+            }
+        }
+
+        stage('Check Build Output') {
+            steps {
+                dir('front-end') {
+                    sh 'ls -la'
+                }
+            }
+        }
+
+        stage('Copy Build to Nginx Directory') {
+            steps {
+                dir('market-supplier-web') {
+                    sh '''
+                        TARGET_DIR="/var/lib/jenkins/workspace/market-supplier-web/market-supplier-web-build/market-supplier-web"
+
+                        # Hedef klasör yoksa oluştur
+                        if [ ! -d "$TARGET_DIR" ]; then
+                            mkdir -p "$TARGET_DIR"
+                        fi
+
+                        # Eski dosyaları sil
+                        rm -rf "$TARGET_DIR"/*
+
+                        # Yeni build çıktısını kopyala
+                        cp -r build/* "$TARGET_DIR"/
+                    '''
+                }
+            }
+        }
+
+    } // stages bloğu sonu
+
+    post {
+        success {
+            echo "birdamlapaylas.com Frontend build ve kopyalama işlemi tamamlandı!"
+            echo "Backend API: http://localhost:9095"
+            echo "Frontend: http://localhost:80"
+        }
+        failure {
+            echo "birdamlapaylas.com Frontend build veya deploy başarısız!"
+        }
+    }
+}
