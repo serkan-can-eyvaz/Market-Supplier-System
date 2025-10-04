@@ -19,27 +19,33 @@ pipeline {
 
         stage('Build Frontend') {
             steps {
-                sh '''
-                    npm install
-                    npm run build
-                '''
+                dir('market-supplier-web') {
+                    sh '''
+                        npm install
+                        npm run build
+                    '''
+                }
             }
         }
 
         stage('Check Build Output') {
             steps {
-                sh 'ls -la build'
+                dir('market-supplier-web') {
+                    sh 'ls -la build'
+                }
             }
         }
 
         stage('Copy Build to Nginx Directory') {
             steps {
-                sh '''
-                    if [ ! -d "/var/lib/jenkins/workspace/market-supplier-web/market-supplier-web-build" ]; then
-                        mkdir -p /var/lib/jenkins/workspace/market-supplier-web/market-supplier-web-build
-                    fi
-                    cp -r build/* /var/lib/jenkins/workspace/market-supplier-web/market-supplier-web-build/
-                '''
+                dir('market-supplier-web') {
+                    sh '''
+                        if [ ! -d "/var/lib/jenkins/workspace/market-supplier-web/market-supplier-web-build" ]; then
+                            mkdir -p /var/lib/jenkins/workspace/market-supplier-web/market-supplier-web-build
+                        fi
+                        cp -r build/* /var/lib/jenkins/workspace/market-supplier-web/market-supplier-web-build/
+                    '''
+                }
             }
         }
             }
