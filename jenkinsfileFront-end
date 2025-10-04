@@ -34,6 +34,12 @@ pipeline {
             steps {
                 dir('market-supplier-web') {
                     sh '''
+                        echo "Current working directory:"
+                        pwd
+                        echo "Contents of current directory:"
+                        ls -la
+                        echo "Contents of public directory:"
+                        ls -la public/
                         npm install
                         npm run build
                     '''
