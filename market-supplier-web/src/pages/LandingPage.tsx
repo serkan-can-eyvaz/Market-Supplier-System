@@ -23,7 +23,6 @@ import {
   LocalShipping,
   Route,
   Assessment,
-  WhatsApp,
   Store,
   Business,
   Speed,
@@ -180,13 +179,17 @@ const LandingPage: React.FC = () => {
                         }
                       }}
                     >
-                      <WhatsApp sx={{ mr: 1 }} />
                       Giriş Yap
                     </Button>
                     <Button
                       variant="outlined"
                       size="large"
-                      onClick={() => window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' })}
+                      onClick={() => {
+                        const benefitsSection = document.getElementById('benefits-section');
+                        if (benefitsSection) {
+                          benefitsSection.scrollIntoView({ behavior: 'smooth' });
+                        }
+                      }}
                       sx={{
                         borderColor: 'white',
                         color: 'white',
@@ -284,7 +287,7 @@ const LandingPage: React.FC = () => {
       </Container>
 
       {/* Benefits Section */}
-      <Box sx={{ bgcolor: '#f8f9fa', py: 8 }}>
+      <Box id="benefits-section" sx={{ bgcolor: '#f8f9fa', py: 8 }}>
         <Container maxWidth="lg">
           <Typography variant="h2" sx={{ textAlign: 'center', mb: 6, fontWeight: 700, color: '#667eea' }}>
             Kimler İçin?
@@ -376,7 +379,6 @@ const LandingPage: React.FC = () => {
                         }
                       }}
                     >
-                      <WhatsApp sx={{ mr: 1 }} />
                       WhatsApp ile Demo
                     </Button>
             <Button
