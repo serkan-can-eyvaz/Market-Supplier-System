@@ -19,39 +19,44 @@ pipeline {
 
         stage('Build Frontend') {
             steps {
-                // Root dizinde build alınır
-                sh "npm install"
-                sh "npm run build"
+                dir('market-supplier-web') {
+                    sh 'npm install'
+                    sh 'npm run build'
+                }
             }
         }
 
         stage('Check Build Output') {
             steps {
-                sh 'ls -la build/'
+                dir('market-supplier-web') {
+                    sh 'ls -la build'
+                }
             }
         }
 
         stage('Copy Build to Nginx Directory') {
             steps {
-                sh '''
-                    TARGET_DIR="/var/lib/jenkins/workspace/market-supplier-web/market-supplier-web-build"
+                dir('market-supplier-web') {
+                    sh '''
+                        TARGET_DIR="/var/lib/jenkins/workspace/market-supplier-web/market-supplier-web-build/market-supplier-web"
 
-                    # Hedef klasör yoksa oluştur
-                    mkdir -p "$TARGET_DIR"
+                        # Hedef klasörü oluştur
+                        mkdir -p "$TARGET_DIR"
 
-                    # Eski build dosyalarını sil
-                    rm -rf "$TARGET_DIR"/*
+                        # Eski dosyaları temizle
+                        rm -rf "$TARGET_DIR"/*
 
-                    # Yeni build çıktısını kopyala
-                    cp -r build/* "$TARGET_DIR"/
-                '''
+                        # Yeni build çıktısını kopyala
+                        cp -r build/* "$TARGET_DIR"/
+                    '''
+                }
             }
         }
     }
 
     post {
         success {
-            echo "✅ market-supplier-web frontend build ve kopyalama işlemi tamamlandı!"
+            echo "✅ market-supplier-web frontend build ve kopyalama tamamlandı!"
             echo "Frontend: http://localhost:80"
         }
         failure {
