@@ -20,50 +20,10 @@ public class AsyncService {
     @Autowired
     private CacheService cacheService;
 
-    @Autowired
-    private com.example.marketsupplier.service.WhatsAppService whatsAppService;
-
-    @Autowired
-    @Lazy
-    private com.example.marketsupplier.service.AIAgentService aiAgentService;
 
     private final AtomicInteger asyncJobCounter = new AtomicInteger(0);
 
-    @Async("taskExecutor")
-    public CompletableFuture<String> processMessageAsync(String phone, String message) {
-        String jobId = "msg_" + asyncJobCounter.incrementAndGet();
-        log.info("Starting async message processing job: {} for phone: {}", jobId, phone);
 
-        try {
-            // Simulate some processing time
-            Thread.sleep(100);
-
-            String response = aiAgentService.processMessage(phone, message);
-            
-            log.info("Completed async message processing job: {} for phone: {}", jobId, phone);
-            return CompletableFuture.completedFuture(response);
-
-        } catch (Exception e) {
-            log.error("Error in async message processing job: {} for phone: {}", jobId, phone, e);
-            return CompletableFuture.completedFuture("Üzgünüm, şu anda size yardımcı olamıyorum. Lütfen daha sonra tekrar deneyin.");
-        }
-    }
-
-    @Async("taskExecutor")
-    public CompletableFuture<Void> sendMessageAsync(String phone, String message) {
-        String jobId = "send_" + asyncJobCounter.incrementAndGet();
-        log.info("Starting async message sending job: {} to phone: {}", jobId, phone);
-
-        try {
-            whatsAppService.sendTextMessage(phone, message);
-            log.info("Completed async message sending job: {} to phone: {}", jobId, phone);
-            return CompletableFuture.completedFuture(null);
-
-        } catch (Exception e) {
-            log.error("Error in async message sending job: {} to phone: {}", jobId, phone, e);
-            return CompletableFuture.completedFuture(null);
-        }
-    }
 
     @Async("taskExecutor")
     public CompletableFuture<Void> cacheWarmupAsync() {
@@ -106,29 +66,6 @@ public class AsyncService {
         }
     }
 
-    @Async("taskExecutor")
-    public CompletableFuture<Void> batchProcessMessagesAsync(java.util.List<String> phones, String message) {
-        String jobId = "batch_" + asyncJobCounter.incrementAndGet();
-        log.info("Starting async batch message processing job: {} for {} phones", jobId, phones.size());
-
-        try {
-            for (String phone : phones) {
-                try {
-                    whatsAppService.sendTextMessage(phone, message);
-                    Thread.sleep(50); // Small delay to avoid rate limiting
-                } catch (Exception e) {
-                    log.warn("Error sending message to phone {} in batch job {}", phone, jobId, e);
-                }
-            }
-            
-            log.info("Completed async batch message processing job: {} for {} phones", jobId, phones.size());
-            return CompletableFuture.completedFuture(null);
-
-        } catch (Exception e) {
-            log.error("Error in async batch message processing job: {}", jobId, e);
-            return CompletableFuture.completedFuture(null);
-        }
-    }
 
     @Async("taskExecutor")
     public CompletableFuture<Void> generateReportAsync(String reportType, String parameters) {
@@ -174,26 +111,6 @@ public class AsyncService {
         }
     }
 
-    @Async("taskExecutor")
-    public CompletableFuture<Void> sendNotificationAsync(String phone, String notificationType, String data) {
-        String jobId = "notif_" + asyncJobCounter.incrementAndGet();
-        log.info("Starting async notification job: {} for phone: {} type: {}", jobId, phone, notificationType);
-
-        try {
-            // Simulate notification processing
-            Thread.sleep(200);
-            
-            String message = buildNotificationMessage(notificationType, data);
-            whatsAppService.sendTextMessage(phone, message);
-            
-            log.info("Completed async notification job: {} for phone: {} type: {}", jobId, phone, notificationType);
-            return CompletableFuture.completedFuture(null);
-
-        } catch (Exception e) {
-            log.error("Error in async notification job: {}", jobId, e);
-            return CompletableFuture.completedFuture(null);
-        }
-    }
 
     // Helper methods
     private void warmupProductCache() {

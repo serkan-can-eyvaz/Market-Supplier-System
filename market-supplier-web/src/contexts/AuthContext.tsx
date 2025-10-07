@@ -4,7 +4,6 @@ import apiService from '../services/api';
 
 interface AuthContextType {
   user: User | null;
-  token: string | null;
   login: (credentials: LoginRequest) => Promise<void>;
   register: (userData: RegisterRequest) => Promise<void>;
   logout: () => void;
@@ -31,51 +30,24 @@ interface AuthProviderProps {
 
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
-  const [token, setToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const initAuth = async () => {
-      const storedToken = localStorage.getItem('token');
-      const storedRefreshToken = localStorage.getItem('refreshToken');
       const storedUser = localStorage.getItem('user');
 
-      if (storedToken && storedUser) {
+      if (storedUser) {
         try {
-          setToken(storedToken);
           setUser(JSON.parse(storedUser));
           
-          // Verify token with backend
+          // Verify session with backend
           const currentUser = await apiService.getCurrentUser();
           setUser(currentUser);
+          localStorage.setItem('user', JSON.stringify(currentUser));
         } catch (error) {
-          // Token is invalid, try refresh
-          if (storedRefreshToken) {
-            try {
-              const refreshResp = await apiService.refreshToken(storedRefreshToken);
-              setToken(refreshResp.token);
-              localStorage.setItem('token', refreshResp.token);
-              if (refreshResp.refreshToken) {
-                localStorage.setItem('refreshToken', refreshResp.refreshToken);
-              }
-              const currentUser = await apiService.getCurrentUser();
-              setUser(currentUser);
-            } catch (refreshError) {
-              // Both token and refresh failed, clear storage
-              localStorage.removeItem('token');
-              localStorage.removeItem('refreshToken');
-              localStorage.removeItem('user');
-              setToken(null);
-              setUser(null);
-            }
-          } else {
-            // No refresh token, clear storage
-            localStorage.removeItem('token');
-            localStorage.removeItem('refreshToken');
-            localStorage.removeItem('user');
-            setToken(null);
-            setUser(null);
-          }
+          // Session is invalid, clear storage
+          localStorage.removeItem('user');
+          setUser(null);
         }
       }
       setLoading(false);
@@ -88,24 +60,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     try {
       const response: AuthResponse = await apiService.login(credentials);
       
-      setToken(response.token);
-      setUser({
-        id: response.userId,
-        name: response.name,
-        email: response.email,
-        role: response.role as UserRole,
-        createdAt: new Date().toISOString()
-      });
-
-      localStorage.setItem('token', response.token);
-      localStorage.setItem('refreshToken', response.refreshToken);
-      localStorage.setItem('user', JSON.stringify({
-        id: response.userId,
-        name: response.name,
-        email: response.email,
-        role: response.role as UserRole,
-        createdAt: new Date().toISOString()
-      }));
+      setUser(response.user);
+      localStorage.setItem('user', JSON.stringify(response.user));
     } catch (error) {
       throw error;
     }
@@ -115,45 +71,31 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     try {
       const response: AuthResponse = await apiService.register(userData);
       
-      setToken(response.token);
-      setUser({
-        id: response.userId,
-        name: response.name,
-        email: response.email,
-        role: response.role as UserRole,
-        createdAt: new Date().toISOString()
-      });
-
-      localStorage.setItem('token', response.token);
-      localStorage.setItem('refreshToken', response.refreshToken);
-      localStorage.setItem('user', JSON.stringify({
-        id: response.userId,
-        name: response.name,
-        email: response.email,
-        role: response.role as UserRole,
-        createdAt: new Date().toISOString()
-      }));
+      setUser(response.user);
+      localStorage.setItem('user', JSON.stringify(response.user));
     } catch (error) {
       throw error;
     }
   };
 
   const logout = () => {
-    setToken(null);
     setUser(null);
-    localStorage.removeItem('token');
-    localStorage.removeItem('refreshToken');
     localStorage.removeItem('user');
+    
+    // Call backend logout endpoint
+    fetch('/api/auth/logout', {
+      method: 'POST',
+      credentials: 'include'
+    }).catch(console.error);
   };
 
-  const isAuthenticated = !!user && !!token;
+  const isAuthenticated = !!user;
   const isAdmin = user?.role === UserRole.ADMIN;
   const isMarket = user?.role === UserRole.MARKET;
   const isSupplier = user?.role === UserRole.SUPPLIER;
 
   const value: AuthContextType = {
     user,
-    token,
     login,
     register,
     logout,

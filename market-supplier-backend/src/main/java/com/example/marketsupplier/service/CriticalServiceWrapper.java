@@ -221,9 +221,6 @@ public class CriticalServiceWrapper {
         return circuitBreakerService.isCircuitClosed("redis-service");
     }
 
-    public boolean isWhatsAppServiceHealthy() {
-        return circuitBreakerService.isCircuitClosed("whatsapp-service");
-    }
 
     public boolean isDatabaseServiceHealthy() {
         return circuitBreakerService.isCircuitClosed("database-service");
@@ -238,7 +235,6 @@ public class CriticalServiceWrapper {
         return new ServiceHealthStatus(
             isLlmServiceHealthy(),
             isRedisServiceHealthy(),
-            isWhatsAppServiceHealthy(),
             isDatabaseServiceHealthy(),
             isCacheServiceHealthy()
         );
@@ -277,34 +273,30 @@ public class CriticalServiceWrapper {
     public static class ServiceHealthStatus {
         private final boolean llmHealthy;
         private final boolean redisHealthy;
-        private final boolean whatsappHealthy;
         private final boolean databaseHealthy;
         private final boolean cacheHealthy;
 
-        public ServiceHealthStatus(boolean llmHealthy, boolean redisHealthy, boolean whatsappHealthy, 
+        public ServiceHealthStatus(boolean llmHealthy, boolean redisHealthy, 
                                  boolean databaseHealthy, boolean cacheHealthy) {
             this.llmHealthy = llmHealthy;
             this.redisHealthy = redisHealthy;
-            this.whatsappHealthy = whatsappHealthy;
             this.databaseHealthy = databaseHealthy;
             this.cacheHealthy = cacheHealthy;
         }
 
         public boolean isLlmHealthy() { return llmHealthy; }
         public boolean isRedisHealthy() { return redisHealthy; }
-        public boolean isWhatsappHealthy() { return whatsappHealthy; }
         public boolean isDatabaseHealthy() { return databaseHealthy; }
         public boolean isCacheHealthy() { return cacheHealthy; }
 
         public boolean isAllHealthy() {
-            return llmHealthy && redisHealthy && whatsappHealthy && databaseHealthy && cacheHealthy;
+            return llmHealthy && redisHealthy && databaseHealthy && cacheHealthy;
         }
 
         public int getHealthyServiceCount() {
             int count = 0;
             if (llmHealthy) count++;
             if (redisHealthy) count++;
-            if (whatsappHealthy) count++;
             if (databaseHealthy) count++;
             if (cacheHealthy) count++;
             return count;
@@ -312,8 +304,8 @@ public class CriticalServiceWrapper {
 
         @Override
         public String toString() {
-            return String.format("ServiceHealthStatus{llm=%s, redis=%s, whatsapp=%s, database=%s, cache=%s}", 
-                llmHealthy, redisHealthy, whatsappHealthy, databaseHealthy, cacheHealthy);
+            return String.format("ServiceHealthStatus{llm=%s, redis=%s, database=%s, cache=%s}", 
+                llmHealthy, redisHealthy, databaseHealthy, cacheHealthy);
         }
     }
 }

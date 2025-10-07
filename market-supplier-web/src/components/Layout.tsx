@@ -105,6 +105,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     if (isMarket) {
       baseItems.push(
         { text: 'Market Dashboard', icon: <Store size={24} />, path: '/market-dashboard' },
+        { text: 'Ürün Kataloğu', icon: <Package size={24} />, path: '/market-products' },
         { text: 'Siparişlerim', icon: <ShoppingCart size={24} />, path: '/orders' }
       );
     }

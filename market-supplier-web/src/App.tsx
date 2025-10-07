@@ -14,7 +14,6 @@ import SupplierDashboardPage from './pages/SupplierDashboardPage';
 import AdminDashboardPage from './pages/AdminDashboardPage';
 import OrdersPage from './pages/OrdersPage';
 import DeliveriesPage from './pages/DeliveriesPage';
-import DeliveriesMapPage from './pages/DeliveriesMapPage';
 import UsersPage from './pages/UsersPage';
 import MarketsPage from './pages/MarketsPage';
 import SuppliersPage from './pages/SuppliersPage';
@@ -22,6 +21,7 @@ import LoadingSpinner from './components/LoadingSpinner';
 import MyMarketsPage from './pages/MyMarketsPage';
 import MarketDetailPage from './pages/MarketDetailPage';
 import ProductsPage from './pages/ProductsPage';
+import MarketProductsPage from './pages/MarketProductsPage';
 import SettingsPage from './pages/SettingsPage';
 
 // Material-UI theme
@@ -245,16 +245,6 @@ const AppRoutes: React.FC = () => {
           </ProtectedRoute>
         } 
       />
-      <Route 
-        path="/deliveries/map" 
-        element={
-          <ProtectedRoute>
-            <Layout>
-              <DeliveriesMapPage />
-            </Layout>
-          </ProtectedRoute>
-        } 
-      />
 
       {/* Supplier: Add Market */}
       <Route 
@@ -315,6 +305,16 @@ const AppRoutes: React.FC = () => {
           <ProtectedRoute>
             <Layout>
               <ProductsPage />
+            </Layout>
+          </ProtectedRoute>
+        } 
+      />
+      <Route 
+        path="/market-products" 
+        element={
+          <ProtectedRoute requiredRole="MARKET">
+            <Layout>
+              <MarketProductsPage />
             </Layout>
           </ProtectedRoute>
         } 

@@ -53,11 +53,11 @@ pipeline {
 
     post {
         success {
-            echo "birdamlapaylas.com Backend, Database ve Nginx container'ları başarıyla ayağa kalktı!"
+            echo "market-supplier-backend Backend, Database ve Nginx container'ları başarıyla ayağa kalktı!"
             echo "Backend API: http://localhost:8480"
         }
         failure {
-            echo "birdamlapaylas.com Backend build veya deploy başarısız!"
+            echo "market-supplier-backend Backend build veya deploy başarısız!"
         }
     }
 }

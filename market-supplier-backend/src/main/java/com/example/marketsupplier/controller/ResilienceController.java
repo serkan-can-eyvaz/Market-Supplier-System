@@ -65,7 +65,6 @@ public class ResilienceController {
         Map<String, Object> status = Map.of(
             "llm", criticalServiceWrapper.isLlmServiceHealthy(),
             "redis", criticalServiceWrapper.isRedisServiceHealthy(),
-            "whatsapp", criticalServiceWrapper.isWhatsAppServiceHealthy(),
             "database", criticalServiceWrapper.isDatabaseServiceHealthy(),
             "cache", criticalServiceWrapper.isCacheServiceHealthy()
         );

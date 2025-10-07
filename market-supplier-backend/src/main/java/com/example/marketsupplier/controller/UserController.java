@@ -10,6 +10,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.security.core.Authentication;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -27,9 +28,9 @@ public class UserController {
     
     // Get all users (Admin only)
     @GetMapping
-    public ResponseEntity<?> getAllUsers(@RequestHeader("Authorization") String token) {
+    public ResponseEntity<?> getAllUsers(Authentication authentication) {
         try {
-            if (!isAdmin(token)) {
+            if (!isAdmin(authentication)) {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN)
                     .body(new ErrorResponse("Access denied. Admin role required."));
             }
@@ -55,10 +56,10 @@ public class UserController {
     
     // Get user by ID
     @GetMapping("/{id}")
-    public ResponseEntity<?> getUserById(@PathVariable Long id, @RequestHeader("Authorization") String token) {
+    public ResponseEntity<?> getUserById(@PathVariable Long id, Authentication authentication) {
         try {
             // Check if user is admin or accessing their own profile
-            if (!isAdmin(token) && !isOwnProfile(id, token)) {
+            if (!isAdmin(authentication) && !isOwnProfile(id, authentication)) {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN)
                     .body(new ErrorResponse("Access denied."));
             }
@@ -87,9 +88,9 @@ public class UserController {
     
     // Get users by role
     @GetMapping("/role/{role}")
-    public ResponseEntity<?> getUsersByRole(@PathVariable UserRole role, @RequestHeader("Authorization") String token) {
+    public ResponseEntity<?> getUsersByRole(@PathVariable UserRole role, Authentication authentication) {
         try {
-            if (!isAdmin(token)) {
+            if (!isAdmin(authentication)) {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN)
                     .body(new ErrorResponse("Access denied. Admin role required."));
             }
@@ -115,9 +116,9 @@ public class UserController {
     
     // Search users by name
     @GetMapping("/search")
-    public ResponseEntity<?> searchUsersByName(@RequestParam String name, @RequestHeader("Authorization") String token) {
+    public ResponseEntity<?> searchUsersByName(@RequestParam String name, Authentication authentication) {
         try {
-            if (!isAdmin(token)) {
+            if (!isAdmin(authentication)) {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN)
                     .body(new ErrorResponse("Access denied. Admin role required."));
             }
@@ -145,10 +146,10 @@ public class UserController {
     @PutMapping("/{id}")
     public ResponseEntity<?> updateUser(@PathVariable Long id, 
                                       @Valid @RequestBody UpdateUserRequest updateRequest,
-                                      @RequestHeader("Authorization") String token) {
+                                      Authentication authentication) {
         try {
             // Check if user is admin or updating their own profile
-            if (!isAdmin(token) && !isOwnProfile(id, token)) {
+            if (!isAdmin(authentication) && !isOwnProfile(id, authentication)) {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN)
                     .body(new ErrorResponse("Access denied."));
             }
@@ -177,9 +178,9 @@ public class UserController {
     
     // Delete user
     @DeleteMapping("/{id}")
-    public ResponseEntity<?> deleteUser(@PathVariable Long id, @RequestHeader("Authorization") String token) {
+    public ResponseEntity<?> deleteUser(@PathVariable Long id, Authentication authentication) {
         try {
-            if (!isAdmin(token)) {
+            if (!isAdmin(authentication)) {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN)
                     .body(new ErrorResponse("Access denied. Admin role required."));
             }
@@ -195,9 +196,9 @@ public class UserController {
     
     // Get user statistics
     @GetMapping("/stats")
-    public ResponseEntity<?> getUserStats(@RequestHeader("Authorization") String token) {
+    public ResponseEntity<?> getUserStats(Authentication authentication) {
         try {
-            if (!isAdmin(token)) {
+            if (!isAdmin(authentication)) {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN)
                     .body(new ErrorResponse("Access denied. Admin role required."));
             }
@@ -212,21 +213,19 @@ public class UserController {
     }
     
     // Helper methods
-    private boolean isAdmin(String token) {
+    private boolean isAdmin(Authentication authentication) {
         try {
-            String jwtToken = token.substring(7);
-            var userOptional = authService.validateTokenAndGetUser(jwtToken);
-            return userOptional.isPresent() && userOptional.get().getRole() == UserRole.ADMIN;
+            User user = (User) authentication.getPrincipal();
+            return user.getRole() == UserRole.ADMIN;
         } catch (Exception e) {
             return false;
         }
     }
     
-    private boolean isOwnProfile(Long userId, String token) {
+    private boolean isOwnProfile(Long userId, Authentication authentication) {
         try {
-            String jwtToken = token.substring(7);
-            var userOptional = authService.validateTokenAndGetUser(jwtToken);
-            return userOptional.isPresent() && userOptional.get().getId().equals(userId);
+            User user = (User) authentication.getPrincipal();
+            return user.getId().equals(userId);
         } catch (Exception e) {
             return false;
         }

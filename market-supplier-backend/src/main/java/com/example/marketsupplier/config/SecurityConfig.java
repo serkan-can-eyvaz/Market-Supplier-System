@@ -1,26 +1,16 @@
 package com.example.marketsupplier.config;
 
-import com.example.marketsupplier.service.JwtService;
-import com.example.marketsupplier.service.JwtTokenService;
-import com.example.marketsupplier.service.RateLimitService;
-import com.example.marketsupplier.security.JwtAuthenticationFilter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
-import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
-import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
-import org.springframework.security.config.http.SessionCreationPolicy;
-import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
@@ -30,23 +20,10 @@ import java.util.List;
 
 @Configuration
 @EnableWebSecurity
-@EnableMethodSecurity(prePostEnabled = true)
 public class SecurityConfig {
     
     @Autowired
-    private JwtService jwtService;
-    
-    @Autowired
-    private JwtTokenService jwtTokenService;
-    
-    @Autowired
-    private RateLimitService rateLimitService;
-    
-    @Autowired
     private CustomUserDetailsService userDetailsService;
-    
-    @Autowired
-    private JwtAuthenticationFilter jwtAuthenticationFilter;
     
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
@@ -57,16 +34,9 @@ public class SecurityConfig {
                 // Public endpoints
                 .requestMatchers("/api/auth/**").permitAll()
                 .requestMatchers("/api/utils/**").permitAll()
-                .requestMatchers("/api/whatsapp/webhook").permitAll() // Allow both GET and POST for WhatsApp
-                .requestMatchers("/webhook/whatsapp").permitAll() // WhatsApp webhook
-                .requestMatchers("/api/n8n/**").permitAll() // N8n workflow endpoints - PUBLIC for testing
-                .requestMatchers("/api/products/ai/**").permitAll()
-                .requestMatchers("/api/ai/**").permitAll()
                 .requestMatchers("/api/orders/status/**").permitAll()
                 .requestMatchers("/error").permitAll()
                 .requestMatchers("/api/suppliers/check-company-name").permitAll()
-                // Harita sayfasında başlangıç adresini okuyabilmek için, geçici olarak public
-                .requestMatchers("/api/suppliers/my-supplier").permitAll()
                 .requestMatchers("/h2-console/**").permitAll()
                 .requestMatchers("/actuator/**").permitAll()
                 .requestMatchers("/swagger-ui/**").permitAll()
@@ -84,16 +54,22 @@ public class SecurityConfig {
                 .requestMatchers("/api/orders/**").hasAnyRole("MARKET", "SUPPLIER", "ADMIN")
                 // Supplier endpoints
                 .requestMatchers("/api/suppliers/**").hasAnyRole("SUPPLIER", "ADMIN")
-                .requestMatchers("/api/products/**").hasAnyRole("SUPPLIER", "ADMIN")
+                .requestMatchers("/api/products/**").hasAnyRole("SUPPLIER", "ADMIN", "MARKET")
                 .requestMatchers("/api/deliveries/**").hasAnyRole("SUPPLIER", "ADMIN")
+                .requestMatchers("/api/cart/**").hasAnyRole("MARKET", "ADMIN")
                 // All other requests need authentication
                 .anyRequest().authenticated()
             )
-            .sessionManagement(session -> session
-                .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+            .formLogin(form -> form
+                .loginPage("/login")
+                .permitAll()
             )
-            .authenticationProvider(authenticationProvider())
-            .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+            .logout(logout -> logout
+                .logoutUrl("/logout")
+                .logoutSuccessUrl("/login?logout")
+                .permitAll()
+            )
+            .authenticationProvider(authenticationProvider());
         
         return http.build();
     }
@@ -111,10 +87,6 @@ public class SecurityConfig {
         return authProvider;
     }
     
-    @Bean
-    public AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception {
-        return config.getAuthenticationManager();
-    }
     
     
     @Bean
@@ -124,7 +96,7 @@ public class SecurityConfig {
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(Arrays.asList("*"));
         configuration.setAllowCredentials(true);
-        configuration.setExposedHeaders(Arrays.asList("Authorization", "Content-Disposition"));
+        configuration.setExposedHeaders(Arrays.asList("Content-Disposition"));
         
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);

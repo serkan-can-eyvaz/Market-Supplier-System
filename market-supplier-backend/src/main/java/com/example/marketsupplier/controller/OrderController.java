@@ -2,7 +2,6 @@ package com.example.marketsupplier.controller;
 
 import com.example.marketsupplier.dto.*;
 import com.example.marketsupplier.entity.*;
-import com.example.marketsupplier.service.AuthService;
 import com.example.marketsupplier.service.MarketService;
 import com.example.marketsupplier.service.OrderService;
 import com.example.marketsupplier.service.OrderPdfService;
@@ -46,8 +45,6 @@ public class OrderController {
     @Autowired
     private MarketService marketService;
     
-    @Autowired
-    private AuthService authService;
     
     @Autowired
     private OrderPdfService orderPdfService;
@@ -64,9 +61,9 @@ public class OrderController {
     // Create new order with items
     @PostMapping
     public ResponseEntity<?> createOrder(@RequestBody CreateOrderRequest request,
-                                       @RequestHeader("Authorization") String token) {
+                                       Authentication authentication) {
         try {
-            Long userId = getUserIdFromToken(token);
+            Long userId = getUserIdFromAuthentication(authentication);
             if (userId == null) {
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                     .body(new ErrorResponse("Invalid token"));
@@ -76,13 +73,7 @@ public class OrderController {
             var marketOptional = marketService.findByUserId(userId);
             if (marketOptional.isEmpty()) {
                 // Create a default market for the user
-                var userOptional = authService.validateTokenAndGetUser(token.substring(7));
-                if (userOptional.isEmpty()) {
-                    return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                        .body(new ErrorResponse("Invalid token"));
-                }
-                
-                var user = userOptional.get();
+                User user = (User) authentication.getPrincipal();
                 var market = marketService.createMarket(
                     user.getId(),
                     user.getName() + " Market",
@@ -144,9 +135,9 @@ public class OrderController {
     @PostMapping("/{orderId}/items")
     public ResponseEntity<?> addItemToOrder(@PathVariable Long orderId,
                                           @Valid @RequestBody OrderItemRequest itemRequest,
-                                          @RequestHeader("Authorization") String token) {
+                                          Authentication authentication) {
         try {
-            Long userId = getUserIdFromToken(token);
+            Long userId = getUserIdFromAuthentication(authentication);
             if (userId == null) {
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                     .body(new ErrorResponse("Invalid token"));
@@ -196,9 +187,9 @@ public class OrderController {
     @GetMapping("/{orderId}/pdf")
     @CrossOrigin(origins = "*", exposedHeaders = {"Content-Disposition"})
     public ResponseEntity<?> downloadOrderPdf(@PathVariable Long orderId,
-                                            @RequestHeader("Authorization") String token) {
+                                            Authentication authentication) {
         try {
-            Long userId = getUserIdFromToken(token);
+            Long userId = getUserIdFromAuthentication(authentication);
             if (userId == null) {
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                     .body(new ErrorResponse("Invalid token"));
@@ -207,17 +198,22 @@ public class OrderController {
             if (orderOpt.isEmpty()) return ResponseEntity.notFound().build();
             var order = orderOpt.get();
 
-            boolean hasAccess = isAdmin(token) || isSupplier(token) || marketService.isMarketOwner(order.getMarket().getId(), userId);
+            boolean hasAccess = isAdmin(authentication) || isSupplier(authentication) || marketService.isMarketOwner(order.getMarket().getId(), userId);
             if (!hasAccess) {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN)
                     .body(new ErrorResponse("Access denied."));
             }
 
-            byte[] pdf = orderPdfService.generateOrderPdf(orderId);
-            return ResponseEntity.ok()
-                .header("Content-Type", "application/pdf")
-                .header("Content-Disposition", "attachment; filename=order-" + orderId + ".pdf")
-                .body(pdf);
+            try {
+                byte[] pdf = orderPdfService.generateOrderPdf(order);
+                return ResponseEntity.ok()
+                    .header("Content-Type", "application/pdf")
+                    .header("Content-Disposition", "attachment; filename=order-" + orderId + ".pdf")
+                    .body(pdf);
+            } catch (Exception e) {
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new ErrorResponse("Failed to generate PDF: " + e.getMessage()));
+            }
         } catch (RuntimeException e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(new ErrorResponse("Failed to generate PDF: " + e.getMessage()));
@@ -228,9 +224,9 @@ public class OrderController {
     @PutMapping("/items/{itemId}")
     public ResponseEntity<?> updateOrderItem(@PathVariable Long itemId,
                                            @Valid @RequestBody OrderItemRequest itemRequest,
-                                           @RequestHeader("Authorization") String token) {
+                                           Authentication authentication) {
         try {
-            Long userId = getUserIdFromToken(token);
+            Long userId = getUserIdFromAuthentication(authentication);
             if (userId == null) {
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                     .body(new ErrorResponse("Invalid token"));
@@ -261,9 +257,9 @@ public class OrderController {
     // Remove item from order
     @DeleteMapping("/items/{itemId}")
     public ResponseEntity<?> removeItemFromOrder(@PathVariable Long itemId,
-                                               @RequestHeader("Authorization") String token) {
+                                               Authentication authentication) {
         try {
-            Long userId = getUserIdFromToken(token);
+            Long userId = getUserIdFromAuthentication(authentication);
             if (userId == null) {
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                     .body(new ErrorResponse("Invalid token"));
@@ -281,9 +277,9 @@ public class OrderController {
     // Complete order
     @PostMapping("/{orderId}/complete")
     public ResponseEntity<?> completeOrder(@PathVariable Long orderId,
-                                         @RequestHeader("Authorization") String token) {
+                                         Authentication authentication) {
         try {
-            Long userId = getUserIdFromToken(token);
+            Long userId = getUserIdFromAuthentication(authentication);
             if (userId == null) {
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                     .body(new ErrorResponse("Invalid token"));
@@ -322,16 +318,16 @@ public class OrderController {
     // Supplier/Admin approves order
     @PostMapping("/{orderId}/approve")
     public ResponseEntity<?> approve(@PathVariable Long orderId,
-                                     @RequestHeader("Authorization") String token) {
+                                     Authentication authentication) {
         try {
-            if (!isSupplier(token) && !isAdmin(token)) {
+            if (!isSupplier(authentication) && !isAdmin(authentication)) {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN)
                     .body(new ErrorResponse("Access denied."));
             }
             Order order = orderService.approveOrder(orderId);
             // After approval, auto create delivery for current supplier (only if not already assigned)
             try {
-                Long userId = getUserIdFromToken(token);
+                Long userId = getUserIdFromAuthentication(authentication);
                 if (userId != null) {
                     supplierService.findByUserId(userId).ifPresent(s -> {
                         try {
@@ -353,9 +349,9 @@ public class OrderController {
     @PostMapping("/{orderId}/approve-with-delivery")
     public ResponseEntity<?> approveWithDelivery(@PathVariable Long orderId,
                                                    @RequestBody DeliveryTimeRequest request,
-                                                   @RequestHeader("Authorization") String token) {
+                                                   Authentication authentication) {
         try {
-            if (!isSupplier(token) && !isAdmin(token)) {
+            if (!isSupplier(authentication) && !isAdmin(authentication)) {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN)
                     .body(new ErrorResponse("Access denied."));
             }
@@ -370,16 +366,16 @@ public class OrderController {
     @PostMapping("/{orderId}/planned-date")
     public ResponseEntity<?> setPlannedDeliveryDate(@PathVariable Long orderId,
                                                     @RequestParam String dateTimeIso,
-                                                    @RequestHeader("Authorization") String token) {
+                                                    Authentication authentication) {
         try {
-            if (!isSupplier(token) && !isAdmin(token)) {
+            if (!isSupplier(authentication) && !isAdmin(authentication)) {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN)
                     .body(new ErrorResponse("Access denied."));
             }
             var dOpt = deliveryService.findByOrder(orderId);
             var d = dOpt.orElseGet(() -> {
                 // If no delivery yet, create one for current supplier
-                Long userId = getUserIdFromToken(token);
+                Long userId = getUserIdFromAuthentication(authentication);
                 var supplierOpt = supplierService.findByUserId(userId);
                 if (supplierOpt.isPresent()) {
                     return deliveryService.createDelivery(orderId, supplierOpt.get().getId());
@@ -409,9 +405,9 @@ public class OrderController {
     // Supplier/Admin rejects order
     @PostMapping("/{orderId}/reject")
     public ResponseEntity<?> reject(@PathVariable Long orderId,
-                                    @RequestHeader("Authorization") String token) {
+                                    Authentication authentication) {
         try {
-            if (!isSupplier(token) && !isAdmin(token)) {
+            if (!isSupplier(authentication) && !isAdmin(authentication)) {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN)
                     .body(new ErrorResponse("Access denied."));
             }
@@ -424,9 +420,9 @@ public class OrderController {
     
     // Get current user's market orders
     @GetMapping("/market")
-    public ResponseEntity<?> getMarketOrders(@RequestHeader("Authorization") String token) {
+    public ResponseEntity<?> getMarketOrders(Authentication authentication) {
         try {
-            Long userId = getUserIdFromToken(token);
+            Long userId = getUserIdFromAuthentication(authentication);
             if (userId == null) {
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                     .body(new ErrorResponse("Invalid token"));
@@ -436,13 +432,7 @@ public class OrderController {
             var marketOptional = marketService.findByUserId(userId);
             if (marketOptional.isEmpty()) {
                 // Create a default market for the user
-                var userOptional = authService.validateTokenAndGetUser(token.substring(7));
-                if (userOptional.isEmpty()) {
-                    return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                        .body(new ErrorResponse("Invalid token"));
-                }
-                
-                var user = userOptional.get();
+                User user = (User) authentication.getPrincipal();
                 var market = marketService.createMarket(
                     user.getId(),
                     user.getName() + " Market",
@@ -498,16 +488,16 @@ public class OrderController {
     // Get orders by market ID (for admin)
     @GetMapping("/market/{marketId}")
     public ResponseEntity<?> getOrdersByMarket(@PathVariable Long marketId,
-                                             @RequestHeader("Authorization") String token) {
+                                             Authentication authentication) {
         try {
-            Long userId = getUserIdFromToken(token);
+            Long userId = getUserIdFromAuthentication(authentication);
             if (userId == null) {
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                     .body(new ErrorResponse("Invalid token"));
             }
             
             // Check if user is admin or market owner
-            if (!isAdmin(token) && !marketService.isMarketOwner(marketId, userId)) {
+            if (!isAdmin(authentication) && !marketService.isMarketOwner(marketId, userId)) {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN)
                     .body(new ErrorResponse("Access denied."));
             }
@@ -547,13 +537,13 @@ public class OrderController {
     
     // Get all orders (for suppliers and admin) with pagination
     @GetMapping
-    public ResponseEntity<?> getAllOrders(@RequestHeader("Authorization") String token,
+    public ResponseEntity<?> getAllOrders(Authentication authentication,
                                         @RequestParam(defaultValue = "0") int page,
                                         @RequestParam(defaultValue = "10") int size,
                                         @RequestParam(defaultValue = "createdAt") String sortBy,
                                         @RequestParam(defaultValue = "desc") String sortDir) {
         try {
-            Long userId = getUserIdFromToken(token);
+            Long userId = getUserIdFromAuthentication(authentication);
             if (userId == null) {
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                     .body(new ErrorResponse("Invalid token"));
@@ -620,13 +610,13 @@ public class OrderController {
     // Get all pending orders (for suppliers) - paginated
     @GetMapping("/pending")
     public ResponseEntity<?> getAllPendingOrders(
-            @RequestHeader("Authorization") String token,
+            Authentication authentication,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(defaultValue = "createdAt") String sortBy,
             @RequestParam(defaultValue = "desc") String sortDir) {
         try {
-            if (!isSupplier(token)) {
+            if (!isSupplier(authentication)) {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN)
                     .body(new ErrorResponse("Access denied. Supplier role required."));
             }
@@ -683,9 +673,9 @@ public class OrderController {
     
     // Get order by ID
     @GetMapping("/{id}")
-    public ResponseEntity<?> getOrderById(@PathVariable Long id, @RequestHeader("Authorization") String token) {
+    public ResponseEntity<?> getOrderById(@PathVariable Long id, Authentication authentication) {
         try {
-            Long userId = getUserIdFromToken(token);
+            Long userId = getUserIdFromAuthentication(authentication);
             if (userId == null) {
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                     .body(new ErrorResponse("Invalid token"));
@@ -699,9 +689,9 @@ public class OrderController {
             Order order = orderOptional.get();
             
             // Check access permissions
-            boolean hasAccess = isAdmin(token) || 
+            boolean hasAccess = isAdmin(authentication) || 
                               marketService.isMarketOwner(order.getMarket().getId(), userId) ||
-                              isSupplier(token);
+                              isSupplier(authentication);
             
             if (!hasAccess) {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN)
@@ -749,9 +739,9 @@ public class OrderController {
     @PutMapping("/{orderId}")
     public ResponseEntity<?> updateOrder(@PathVariable Long orderId,
                                        @RequestBody UpdateOrderRequest request,
-                                       @RequestHeader("Authorization") String token) {
+                                       Authentication authentication) {
         try {
-            Long userId = getUserIdFromToken(token);
+            Long userId = getUserIdFromAuthentication(authentication);
             if (userId == null) {
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                     .body(new ErrorResponse("Invalid token"));
@@ -823,9 +813,9 @@ public class OrderController {
     // Delete order
     @DeleteMapping("/{orderId}")
     public ResponseEntity<?> deleteOrder(@PathVariable Long orderId,
-                                       @RequestHeader("Authorization") String token) {
+                                       Authentication authentication) {
         try {
-            Long userId = getUserIdFromToken(token);
+            Long userId = getUserIdFromAuthentication(authentication);
             if (userId == null) {
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                     .body(new ErrorResponse("Invalid token"));
@@ -910,9 +900,9 @@ public class OrderController {
     
     // Get order statistics
     @GetMapping("/stats")
-    public ResponseEntity<?> getOrderStats(@RequestHeader("Authorization") String token) {
+    public ResponseEntity<?> getOrderStats(Authentication authentication) {
         try {
-            if (!isAdmin(token)) {
+            if (!isAdmin(authentication)) {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN)
                     .body(new ErrorResponse("Access denied. Admin role required."));
             }
@@ -946,31 +936,28 @@ public class OrderController {
     }
     
     // Helper methods
-    private Long getUserIdFromToken(String token) {
+    private Long getUserIdFromAuthentication(Authentication authentication) {
         try {
-            String jwtToken = token.substring(7);
-            var userOptional = authService.validateTokenAndGetUser(jwtToken);
-            return userOptional.map(User::getId).orElse(null);
+            User user = (User) authentication.getPrincipal();
+            return user.getId();
         } catch (Exception e) {
             return null;
         }
     }
     
-    private boolean isAdmin(String token) {
+    private boolean isAdmin(Authentication authentication) {
         try {
-            String jwtToken = token.substring(7);
-            var userOptional = authService.validateTokenAndGetUser(jwtToken);
-            return userOptional.isPresent() && userOptional.get().getRole() == UserRole.ADMIN;
+            User user = (User) authentication.getPrincipal();
+            return user.getRole() == UserRole.ADMIN;
         } catch (Exception e) {
             return false;
         }
     }
     
-    private boolean isSupplier(String token) {
+    private boolean isSupplier(Authentication authentication) {
         try {
-            String jwtToken = token.substring(7);
-            var userOptional = authService.validateTokenAndGetUser(jwtToken);
-            return userOptional.isPresent() && userOptional.get().getRole() == UserRole.SUPPLIER;
+            User user = (User) authentication.getPrincipal();
+            return user.getRole() == UserRole.SUPPLIER;
         } catch (Exception e) {
             return false;
         }

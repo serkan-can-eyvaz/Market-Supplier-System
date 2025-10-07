@@ -3,6 +3,7 @@ package com.example.marketsupplier.controller;
 import com.example.marketsupplier.entity.Product;
 import com.example.marketsupplier.entity.User;
 import com.example.marketsupplier.service.ProductService;
+import com.example.marketsupplier.dto.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -11,13 +12,12 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
-import com.example.marketsupplier.dto.PaginatedResponse;
+import jakarta.validation.Valid;
 
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import com.example.marketsupplier.service.UserService;
 import org.springframework.http.HttpStatus;
 
 @RestController
@@ -27,9 +27,6 @@ public class ProductController {
 
     @Autowired
     private ProductService productService;
-    
-    @Autowired
-    private UserService userService;
 
     @GetMapping("/test")
     public ResponseEntity<String> test() {
@@ -43,27 +40,7 @@ public class ProductController {
                                                @RequestParam(defaultValue = "createdAt") String sortBy,
                                                @RequestParam(defaultValue = "desc") String sortDir) {
         try {
-            System.out.println("DEBUG: ProductController.getSupplierProducts called");
-            Object principal = authentication.getPrincipal();
-            System.out.println("DEBUG: Principal type: " + principal.getClass().getName());
-            
-            User user;
-            if (principal instanceof User) {
-                user = (User) principal;
-            } else if (principal instanceof com.example.marketsupplier.config.CustomUserDetailsService.CustomUserPrincipal) {
-                // CustomUserPrincipal'dan User'a dönüştür
-                user = ((com.example.marketsupplier.config.CustomUserDetailsService.CustomUserPrincipal) principal).getUser();
-            } else {
-                // JWT authentication'dan gelen String username'i User'a dönüştür
-                String email = (String) principal;
-                Optional<User> userOpt = userService.findByEmail(email);
-                if (userOpt.isEmpty()) {
-                    return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("User not found");
-                }
-                user = userOpt.get();
-            }
-            
-            System.out.println("DEBUG: User: " + user.getEmail() + ", Role: " + user.getRole());
+            User user = (User) authentication.getPrincipal();
             
             // Create pagination
             Sort.Direction direction = sortDir.equalsIgnoreCase("desc") ? Sort.Direction.DESC : Sort.Direction.ASC;
@@ -81,11 +58,8 @@ public class ProductController {
                 productPage.isLast()
             );
             
-            System.out.println("DEBUG: Products count: " + productPage.getTotalElements());
             return ResponseEntity.ok(paginatedResponse);
         } catch (Exception e) {
-            System.out.println("DEBUG: ProductController.getSupplierProducts error: " + e.getMessage());
-            e.printStackTrace();
             return ResponseEntity.badRequest().build();
         }
     }
@@ -93,21 +67,7 @@ public class ProductController {
     @GetMapping("/supplier/all")
     public ResponseEntity<?> getAllSupplierProducts(Authentication authentication) {
         try {
-            Object principal = authentication.getPrincipal();
-            User user;
-            if (principal instanceof User) {
-                user = (User) principal;
-            } else if (principal instanceof com.example.marketsupplier.config.CustomUserDetailsService.CustomUserPrincipal) {
-                user = ((com.example.marketsupplier.config.CustomUserDetailsService.CustomUserPrincipal) principal).getUser();
-            } else {
-                // JWT authentication'dan gelen String username'i User'a dönüştür
-                String email = (String) principal;
-                Optional<User> userOpt = userService.findByEmail(email);
-                if (userOpt.isEmpty()) {
-                    return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("User not found");
-                }
-                user = userOpt.get();
-            }
+            User user = (User) authentication.getPrincipal();
             List<Product> products = productService.getAllSupplierProducts(user);
             return ResponseEntity.ok(products);
         } catch (Exception e) {
@@ -118,33 +78,17 @@ public class ProductController {
     @PostMapping
     public ResponseEntity<?> createProduct(
             Authentication authentication,
-            @RequestParam String name,
-            @RequestParam(required = false) String description,
-            @RequestParam String unit,
-            @RequestParam String price) {
+            @Valid @RequestBody ProductCreateRequest request) {
         try {
-            System.out.println("DEBUG: ProductController.createProduct called with price: " + price);
-            Object principal = authentication.getPrincipal();
-            User user;
-            if (principal instanceof User) {
-                user = (User) principal;
-            } else if (principal instanceof com.example.marketsupplier.config.CustomUserDetailsService.CustomUserPrincipal) {
-                user = ((com.example.marketsupplier.config.CustomUserDetailsService.CustomUserPrincipal) principal).getUser();
-            } else {
-                // JWT authentication'dan gelen String username'i User'a dönüştür
-                String email = (String) principal;
-                Optional<User> userOpt = userService.findByEmail(email);
-                if (userOpt.isEmpty()) {
-                    return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("User not found");
-                }
-                user = userOpt.get();
-            }
-            BigDecimal priceDecimal = new BigDecimal(price);
-            Product product = productService.createProduct(user, name, description, unit, priceDecimal);
-            return ResponseEntity.ok(product);
+            User user = (User) authentication.getPrincipal();
+            
+            Product product = productService.createProduct(user, request.getName(), request.getDescription(), 
+                                                          request.getUnit(), request.getPrice(), request.getStockQuantity());
+            
+            // Convert to response DTO
+            ProductResponse response = convertToProductResponse(product);
+            return ResponseEntity.ok(response);
         } catch (Exception e) {
-            System.out.println("DEBUG: ProductController.createProduct error: " + e.getMessage());
-            e.printStackTrace();
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
     }
@@ -153,30 +97,17 @@ public class ProductController {
     public ResponseEntity<?> updateProduct(
             Authentication authentication,
             @PathVariable Long id,
-            @RequestParam String name,
-            @RequestParam(required = false) String description,
-            @RequestParam String unit,
-            @RequestParam BigDecimal price) {
+            @Valid @RequestBody ProductUpdateRequest request) {
         try {
-            Object principal = authentication.getPrincipal();
-            User user;
-            if (principal instanceof User) {
-                user = (User) principal;
-            } else if (principal instanceof com.example.marketsupplier.config.CustomUserDetailsService.CustomUserPrincipal) {
-                user = ((com.example.marketsupplier.config.CustomUserDetailsService.CustomUserPrincipal) principal).getUser();
-            } else {
-                // JWT authentication'dan gelen String username'i User'a dönüştür
-                String email = (String) principal;
-                Optional<User> userOpt = userService.findByEmail(email);
-                if (userOpt.isEmpty()) {
-                    return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("User not found");
-                }
-                user = userOpt.get();
-            }
-            Product product = productService.updateProduct(user, id, name, description, unit, price);
-            return ResponseEntity.ok(product);
+            User user = (User) authentication.getPrincipal();
+            
+            Product product = productService.updateProduct(user, id, request);
+            
+            // Convert to response DTO
+            ProductResponse response = convertToProductResponse(product);
+            return ResponseEntity.ok(response);
         } catch (Exception e) {
-            return ResponseEntity.badRequest().build();
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
     }
 
@@ -186,21 +117,7 @@ public class ProductController {
             @PathVariable Long id,
             @RequestParam Integer stockQuantity) {
         try {
-            Object principal = authentication.getPrincipal();
-            User user;
-            if (principal instanceof User) {
-                user = (User) principal;
-            } else if (principal instanceof com.example.marketsupplier.config.CustomUserDetailsService.CustomUserPrincipal) {
-                user = ((com.example.marketsupplier.config.CustomUserDetailsService.CustomUserPrincipal) principal).getUser();
-            } else {
-                // JWT authentication'dan gelen String username'i User'a dönüştür
-                String email = (String) principal;
-                Optional<User> userOpt = userService.findByEmail(email);
-                if (userOpt.isEmpty()) {
-                    return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("User not found");
-                }
-                user = userOpt.get();
-            }
+            User user = (User) authentication.getPrincipal();
             Product product = productService.updateStock(user, id, stockQuantity);
             return ResponseEntity.ok(product);
         } catch (Exception e) {
@@ -222,21 +139,7 @@ public class ProductController {
     @PutMapping("/{id}/toggle")
     public ResponseEntity<?> toggleProductStatus(Authentication authentication, @PathVariable Long id) {
         try {
-            Object principal = authentication.getPrincipal();
-            User user;
-            if (principal instanceof User) {
-                user = (User) principal;
-            } else if (principal instanceof com.example.marketsupplier.config.CustomUserDetailsService.CustomUserPrincipal) {
-                user = ((com.example.marketsupplier.config.CustomUserDetailsService.CustomUserPrincipal) principal).getUser();
-            } else {
-                // JWT authentication'dan gelen String username'i User'a dönüştür
-                String email = (String) principal;
-                Optional<User> userOpt = userService.findByEmail(email);
-                if (userOpt.isEmpty()) {
-                    return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("User not found");
-                }
-                user = userOpt.get();
-            }
+            User user = (User) authentication.getPrincipal();
             Product product = productService.toggleProductStatus(user, id);
             return ResponseEntity.ok(product);
         } catch (Exception e) {
@@ -260,21 +163,7 @@ public class ProductController {
     @GetMapping("/{id}")
     public ResponseEntity<?> getProduct(Authentication authentication, @PathVariable Long id) {
         try {
-            Object principal = authentication.getPrincipal();
-            User user;
-            if (principal instanceof User) {
-                user = (User) principal;
-            } else if (principal instanceof com.example.marketsupplier.config.CustomUserDetailsService.CustomUserPrincipal) {
-                user = ((com.example.marketsupplier.config.CustomUserDetailsService.CustomUserPrincipal) principal).getUser();
-            } else {
-                // JWT authentication'dan gelen String username'i User'a dönüştür
-                String email = (String) principal;
-                Optional<User> userOpt = userService.findByEmail(email);
-                if (userOpt.isEmpty()) {
-                    return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("User not found");
-                }
-                user = userOpt.get();
-            }
+            User user = (User) authentication.getPrincipal();
             return productService.getProductById(user, id)
                     .map(ResponseEntity::ok)
                     .orElse(ResponseEntity.notFound().build());
@@ -298,24 +187,7 @@ public class ProductController {
     @GetMapping("/all")
     public ResponseEntity<?> getAllProducts(Authentication authentication) {
         try {
-            Object principal = authentication.getPrincipal();
-            User user;
-            
-            if (principal instanceof User) {
-                user = (User) principal;
-            } else if (principal instanceof com.example.marketsupplier.config.CustomUserDetailsService.CustomUserPrincipal) {
-                user = ((com.example.marketsupplier.config.CustomUserDetailsService.CustomUserPrincipal) principal).getUser();
-            } else if (principal instanceof String) {
-                // JWT authentication
-                String email = (String) principal;
-                Optional<User> userOpt = userService.findByEmail(email);
-                if (userOpt.isEmpty()) {
-                    return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("User not found");
-                }
-                user = userOpt.get();
-            } else {
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid authentication");
-            }
+            User user = (User) authentication.getPrincipal();
             
             // Sadece ADMIN rolü tüm ürünleri görebilir
             if (!user.getRole().name().equals("ADMIN")) {
@@ -327,5 +199,61 @@ public class ProductController {
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error retrieving products: " + e.getMessage());
         }
+    }
+
+    // Market kullanıcıları için tüm aktif ürünleri getir
+    @GetMapping("/market/available")
+    public ResponseEntity<?> getAvailableProductsForMarket(Authentication authentication) {
+        try {
+            User user = (User) authentication.getPrincipal();
+            
+            // Sadece MARKET rolü bu endpoint'i kullanabilir
+            if (!user.getRole().name().equals("MARKET")) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Access denied. Market role required.");
+            }
+            
+            List<Product> products = productService.getAllActiveProducts();
+            List<ProductResponse> responses = products.stream()
+                    .map(this::convertToProductResponse)
+                    .toList();
+            
+            return ResponseEntity.ok(responses);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error retrieving products: " + e.getMessage());
+        }
+    }
+
+    // Tedarikçi ürünlerini ProductResponse formatında getir
+    @GetMapping("/supplier/formatted")
+    public ResponseEntity<?> getSupplierProductsFormatted(Authentication authentication) {
+        try {
+            User user = (User) authentication.getPrincipal();
+            
+            List<Product> products = productService.getSupplierProducts(user);
+            List<ProductResponse> responses = products.stream()
+                    .map(this::convertToProductResponse)
+                    .toList();
+            
+            return ResponseEntity.ok(responses);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error retrieving products: " + e.getMessage());
+        }
+    }
+
+    // Helper method to convert Product to ProductResponse
+    private ProductResponse convertToProductResponse(Product product) {
+        return new ProductResponse(
+                product.getId(),
+                product.getName(),
+                product.getDescription(),
+                product.getUnit(),
+                product.getPrice(),
+                product.getStockQuantity(),
+                product.getIsActive(),
+                product.getSupplier() != null ? product.getSupplier().getCompanyName() : null,
+                product.getSupplier() != null ? product.getSupplier().getId() : null,
+                product.getCreatedAt(),
+                product.getUpdatedAt()
+        );
     }
 }

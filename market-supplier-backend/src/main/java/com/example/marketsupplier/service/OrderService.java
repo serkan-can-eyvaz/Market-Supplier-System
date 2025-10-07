@@ -38,8 +38,6 @@ public class OrderService {
     @Autowired
     private MarketService marketService;
     
-    @Autowired
-    private WhatsAppService whatsAppService;
 
     @Autowired
     private CartService cartService;
@@ -188,7 +186,7 @@ public class OrderService {
                 orderId,
                 formattedDate
             );
-            whatsAppService.sendTextMessage(marketPhone, message);
+            // WhatsApp notification removed - no longer needed
         } catch (Exception e) {
             log.error("Failed to send WhatsApp notification for order approval with delivery time", e);
         }
@@ -219,7 +217,7 @@ public class OrderService {
             } else {
                 message = "Siparişiniz #" + orderId + " onaylandı! En kısa sürede teslim edilecektir.";
             }
-            whatsAppService.sendTextMessage(marketPhone, message);
+            // WhatsApp notification removed - no longer needed
         } catch (Exception e) {
             log.error("Failed to send WhatsApp notification for order approval", e);
         }
@@ -240,7 +238,7 @@ public class OrderService {
         try {
             String marketPhone = order.getMarket().getPhone();
             String message = "Siparişiniz #" + orderId + " reddedildi. Lütfen tedarikçinizle iletişime geçin.";
-            whatsAppService.sendTextMessage(marketPhone, message);
+            // WhatsApp notification removed - no longer needed
         } catch (Exception e) {
             log.error("Failed to send WhatsApp notification for order rejection", e);
         }

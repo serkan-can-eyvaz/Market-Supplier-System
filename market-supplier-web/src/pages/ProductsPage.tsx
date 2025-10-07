@@ -36,7 +36,7 @@ import { Package } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { LogoIcon } from '../components/ui/Logo';
 import apiService from '../services/api';
-import { Product, PaginatedResponse } from '../types';
+import { Product, PaginatedResponse, ProductResponse, ProductCreateRequest, ProductUpdateRequest } from '../types';
 import {
   Add as AddIcon,
   Edit as EditIcon,
@@ -66,7 +66,7 @@ const ProductsPage: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [showInactive, setShowInactive] = useState(false);
 
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<ProductCreateRequest>({
     name: '',
     description: '',
     unit: 'adet',
@@ -151,15 +151,16 @@ const ProductsPage: React.FC = () => {
   const handleSaveProduct = async () => {
     try {
       if (editingProduct) {
-        await apiService.updateProduct(editingProduct.id, formData as any);
-        if (typeof formData.stockQuantity === 'number') {
-          await apiService.updateProductStock(editingProduct.id, formData.stockQuantity);
-        }
+        const updateData: ProductUpdateRequest = {
+          name: formData.name,
+          description: formData.description,
+          unit: formData.unit,
+          price: formData.price,
+          stockQuantity: formData.stockQuantity
+        };
+        await apiService.updateProduct(editingProduct.id, updateData);
       } else {
-        const created = await apiService.createProduct(formData as any);
-        if (typeof formData.stockQuantity === 'number' && created?.id) {
-          await apiService.updateProductStock(created.id, formData.stockQuantity);
-        }
+        await apiService.createProduct(formData);
       }
       setOpenDialog(false);
       fetchProducts();

@@ -2,6 +2,7 @@ package com.example.marketsupplier.service;
 
 import com.example.marketsupplier.entity.*;
 import com.example.marketsupplier.repository.*;
+import com.example.marketsupplier.dto.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -10,6 +11,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 @Transactional
@@ -118,12 +120,6 @@ public class CartService {
         }
     }
 
-    public void removeItem(Long marketId, Long itemId) {
-        Cart cart = getOrCreateCartForMarket(marketId);
-        cartItemRepository.findById(itemId)
-            .filter(item -> item.getCart().equals(cart))
-            .ifPresent(cartItemRepository::delete);
-    }
 
     public void removeItemByName(Long marketId, String productName) {
         Cart cart = getOrCreateCartForMarket(marketId);
@@ -244,6 +240,130 @@ public class CartService {
         for (String w : wa) if (wb.contains(w)) inter++;
         int union = wa.size() + wb.size() - inter;
         return union == 0 ? 0.0 : (double) inter / union;
+    }
+
+    // Yeni gelişmiş sepet metodları
+    public void addItem(Long marketId, Long productId, Integer quantity) {
+        Market market = marketService.findById(marketId)
+                .orElseThrow(() -> new RuntimeException("Market not found"));
+        
+        Cart cart = getOrCreateCartForMarket(market);
+        
+        // Mevcut ürünü kontrol et
+        Optional<CartItem> existingItem = cartItemRepository.findByCartAndProductId(cart, productId);
+        
+        if (existingItem.isPresent()) {
+            // Mevcut ürün varsa miktarı artır
+            CartItem item = existingItem.get();
+            item.setQuantity(item.getQuantity() + quantity);
+            cartItemRepository.save(item);
+        } else {
+            // Yeni ürün ekle - Product bilgilerini al
+            // Bu kısım ProductService'e bağımlılık yaratır, bu yüzden basit bir yaklaşım kullanacağız
+            CartItem newItem = new CartItem();
+            newItem.setCart(cart);
+            newItem.setProductId(productId);
+            newItem.setQuantity(quantity);
+            // Product bilgileri daha sonra güncellenecek
+            cartItemRepository.save(newItem);
+        }
+    }
+
+    public void updateItemQuantity(Long marketId, Long itemId, Integer quantity) {
+        Market market = marketService.findById(marketId)
+                .orElseThrow(() -> new RuntimeException("Market not found"));
+        
+        Cart cart = getOrCreateCartForMarket(market);
+        CartItem item = cartItemRepository.findByIdAndCart(itemId, cart)
+                .orElseThrow(() -> new RuntimeException("Cart item not found"));
+        
+        if (quantity <= 0) {
+            cartItemRepository.delete(item);
+        } else {
+            item.setQuantity(quantity);
+            cartItemRepository.save(item);
+        }
+    }
+
+    public void removeItem(Long marketId, Long itemId) {
+        Market market = marketService.findById(marketId)
+                .orElseThrow(() -> new RuntimeException("Market not found"));
+        
+        Cart cart = getOrCreateCartForMarket(market);
+        CartItem item = cartItemRepository.findByIdAndCart(itemId, cart)
+                .orElseThrow(() -> new RuntimeException("Cart item not found"));
+        
+        cartItemRepository.delete(item);
+    }
+
+    public CartResponse getCartResponse(Long marketId) {
+        Market market = marketService.findById(marketId)
+                .orElseThrow(() -> new RuntimeException("Market not found"));
+        
+        Cart cart = getOrCreateCartForMarket(market);
+        List<CartItem> items = cartItemRepository.findByCart(cart);
+        
+        // CartItem'ları CartItemResponse'a dönüştür
+        List<CartItemResponse> itemResponses = items.stream()
+                .map(this::convertToCartItemResponse)
+                .collect(Collectors.toList());
+        
+        // Toplam hesapla
+        BigDecimal totalAmount = items.stream()
+                .map(item -> item.getPrice().multiply(BigDecimal.valueOf(item.getQuantity())))
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        
+        Integer totalItems = items.stream()
+                .mapToInt(CartItem::getQuantity)
+                .sum();
+        
+        return new CartResponse(
+                cart.getId(),
+                marketId,
+                market.getName(),
+                itemResponses,
+                totalAmount,
+                totalItems,
+                cart.getCreatedAt(),
+                cart.getUpdatedAt()
+        );
+    }
+
+    public Map<String, Object> getCartSummary(Long marketId) {
+        Market market = marketService.findById(marketId)
+                .orElseThrow(() -> new RuntimeException("Market not found"));
+        
+        Cart cart = getOrCreateCartForMarket(market);
+        List<CartItem> items = cartItemRepository.findByCart(cart);
+        
+        BigDecimal totalAmount = items.stream()
+                .map(item -> item.getPrice().multiply(BigDecimal.valueOf(item.getQuantity())))
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        
+        Integer totalItems = items.stream()
+                .mapToInt(CartItem::getQuantity)
+                .sum();
+        
+        Map<String, Object> summary = new HashMap<>();
+        summary.put("totalAmount", totalAmount);
+        summary.put("totalItems", totalItems);
+        summary.put("itemCount", items.size());
+        summary.put("marketName", market.getName());
+        
+        return summary;
+    }
+
+    private CartItemResponse convertToCartItemResponse(CartItem item) {
+        return new CartItemResponse(
+                item.getId(),
+                item.getProductId(),
+                item.getProductName(),
+                item.getUnit(),
+                item.getPrice(),
+                item.getQuantity(),
+                item.getPrice().multiply(BigDecimal.valueOf(item.getQuantity())),
+                "Tedarikçi" // Bu bilgi daha sonra ProductService'den alınabilir
+        );
     }
 }
 

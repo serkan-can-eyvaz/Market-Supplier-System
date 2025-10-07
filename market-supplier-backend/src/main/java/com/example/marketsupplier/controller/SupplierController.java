@@ -11,6 +11,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.security.core.Authentication;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -29,9 +30,9 @@ public class SupplierController {
     // Create supplier
     @PostMapping
     public ResponseEntity<?> createSupplier(@Valid @RequestBody SupplierRequest supplierRequest,
-                                          @RequestHeader("Authorization") String token) {
+                                          Authentication authentication) {
         try {
-            Long userId = getUserIdFromToken(token);
+            Long userId = getUserIdFromAuthentication(authentication);
             if (userId == null) {
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                     .body(new ErrorResponse("Invalid token"));
@@ -68,9 +69,9 @@ public class SupplierController {
     // Admin creates supplier (also creates SUPPLIER user)
     @PostMapping("/admin-create")
     public ResponseEntity<?> adminCreateSupplier(@Valid @RequestBody AdminCreateSupplierRequest req,
-                                                 @RequestHeader("Authorization") String token) {
+                                                 Authentication authentication) {
         try {
-            if (!isAdmin(token)) {
+            if (!isAdmin(authentication)) {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN)
                     .body(new ErrorResponse("Access denied. Admin role required."));
             }
@@ -97,9 +98,9 @@ public class SupplierController {
 
     // Get all suppliers
     @GetMapping
-    public ResponseEntity<?> getAllSuppliers(@RequestHeader("Authorization") String token) {
+    public ResponseEntity<?> getAllSuppliers(Authentication authentication) {
         try {
-            if (!isAdmin(token)) {
+            if (!isAdmin(authentication)) {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN)
                     .body(new ErrorResponse("Access denied. Admin role required."));
             }
@@ -129,16 +130,16 @@ public class SupplierController {
     
     // Get supplier by ID
     @GetMapping("/{id}")
-    public ResponseEntity<?> getSupplierById(@PathVariable Long id, @RequestHeader("Authorization") String token) {
+    public ResponseEntity<?> getSupplierById(@PathVariable Long id, Authentication authentication) {
         try {
-            Long userId = getUserIdFromToken(token);
+            Long userId = getUserIdFromAuthentication(authentication);
             if (userId == null) {
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                     .body(new ErrorResponse("Invalid token"));
             }
             
             // Check if user is admin or supplier owner
-            if (!isAdmin(token) && !supplierService.isSupplierOwner(id, userId)) {
+            if (!isAdmin(authentication) && !supplierService.isSupplierOwner(id, userId)) {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN)
                     .body(new ErrorResponse("Access denied."));
             }
@@ -171,9 +172,9 @@ public class SupplierController {
     
     // Get current user's supplier
     @GetMapping("/my-supplier")
-    public ResponseEntity<?> getMySupplier(@RequestHeader("Authorization") String token) {
+    public ResponseEntity<?> getMySupplier(Authentication authentication) {
         try {
-            Long userId = getUserIdFromToken(token);
+            Long userId = getUserIdFromAuthentication(authentication);
             if (userId == null) {
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                     .body(new ErrorResponse("Invalid token"));
@@ -208,9 +209,9 @@ public class SupplierController {
     // Search suppliers by company name
     @GetMapping("/search")
     public ResponseEntity<?> searchSuppliersByCompanyName(@RequestParam String companyName, 
-                                                         @RequestHeader("Authorization") String token) {
+                                                         Authentication authentication) {
         try {
-            if (!isAdmin(token)) {
+            if (!isAdmin(authentication)) {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN)
                     .body(new ErrorResponse("Access denied. Admin role required."));
             }
@@ -242,16 +243,16 @@ public class SupplierController {
     @PutMapping("/{id}")
     public ResponseEntity<?> updateSupplier(@PathVariable Long id,
                                           @Valid @RequestBody SupplierRequest supplierRequest,
-                                          @RequestHeader("Authorization") String token) {
+                                          Authentication authentication) {
         try {
-            Long userId = getUserIdFromToken(token);
+            Long userId = getUserIdFromAuthentication(authentication);
             if (userId == null) {
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                     .body(new ErrorResponse("Invalid token"));
             }
             
             // Check if user is admin or supplier owner
-            if (!isAdmin(token) && !supplierService.isSupplierOwner(id, userId)) {
+            if (!isAdmin(authentication) && !supplierService.isSupplierOwner(id, userId)) {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN)
                     .body(new ErrorResponse("Access denied."));
             }
@@ -286,9 +287,9 @@ public class SupplierController {
     
     // Delete supplier
     @DeleteMapping("/{id}")
-    public ResponseEntity<?> deleteSupplier(@PathVariable Long id, @RequestHeader("Authorization") String token) {
+    public ResponseEntity<?> deleteSupplier(@PathVariable Long id, Authentication authentication) {
         try {
-            if (!isAdmin(token)) {
+            if (!isAdmin(authentication)) {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN)
                     .body(new ErrorResponse("Access denied. Admin role required."));
             }
@@ -304,9 +305,9 @@ public class SupplierController {
     
     // Get supplier statistics
     @GetMapping("/stats")
-    public ResponseEntity<?> getSupplierStats(@RequestHeader("Authorization") String token) {
+    public ResponseEntity<?> getSupplierStats(Authentication authentication) {
         try {
-            if (!isAdmin(token)) {
+            if (!isAdmin(authentication)) {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN)
                     .body(new ErrorResponse("Access denied. Admin role required."));
             }
@@ -334,21 +335,19 @@ public class SupplierController {
     }
     
     // Helper methods
-    private Long getUserIdFromToken(String token) {
+    private Long getUserIdFromAuthentication(Authentication authentication) {
         try {
-            String jwtToken = token.substring(7);
-            var userOptional = authService.validateTokenAndGetUser(jwtToken);
-            return userOptional.map(User::getId).orElse(null);
+            User user = (User) authentication.getPrincipal();
+            return user.getId();
         } catch (Exception e) {
             return null;
         }
     }
     
-    private boolean isAdmin(String token) {
+    private boolean isAdmin(Authentication authentication) {
         try {
-            String jwtToken = token.substring(7);
-            var userOptional = authService.validateTokenAndGetUser(jwtToken);
-            return userOptional.isPresent() && userOptional.get().getRole() == UserRole.ADMIN;
+            User user = (User) authentication.getPrincipal();
+            return user.getRole() == UserRole.ADMIN;
         } catch (Exception e) {
             return false;
         }
@@ -358,16 +357,16 @@ public class SupplierController {
     @PutMapping("/{id}/phone-number-id")
     public ResponseEntity<?> updatePhoneNumberId(@PathVariable Long id,
                                                @RequestBody PhoneNumberIdRequest request,
-                                               @RequestHeader("Authorization") String token) {
+                                               Authentication authentication) {
         try {
-            Long userId = getUserIdFromToken(token);
+            Long userId = getUserIdFromAuthentication(authentication);
             if (userId == null) {
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                     .body(new ErrorResponse("Invalid token"));
             }
 
             // ADMIN ise herhangi bir tedarikçiyi güncelleyebilmesine izin ver
-            if (isAdmin(token)) {
+            if (isAdmin(authentication)) {
                 Supplier supplier = supplierService.updatePhoneNumberId(id, request.getPhoneNumberId());
                 return ResponseEntity.ok(new MessageResponse("Phone number ID updated successfully"));
             }

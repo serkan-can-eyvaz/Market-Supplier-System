@@ -13,14 +13,19 @@ import {
   OrderItemRequest,
   Delivery,
   DeliveryRequest,
-  RoutePlanRequest,
   PaginatedResponse,
   UserStats,
   MarketStats,
   SupplierStats,
   OrderStats,
   DeliveryStats,
-  Product
+  Product,
+  ProductResponse,
+  ProductCreateRequest,
+  ProductUpdateRequest,
+  CartItem,
+  CartResponse,
+  CartItemRequest
 } from '../types';
 
 class ApiService {
@@ -34,13 +39,11 @@ class ApiService {
       },
     });
 
-    // Request interceptor to add auth token
+    // Request interceptor for session-based authentication
     this.api.interceptors.request.use(
       (config) => {
-        const token = localStorage.getItem('token');
-        if (token) {
-          config.headers.Authorization = `Bearer ${token}`;
-        }
+        // Session-based authentication - no token needed
+        // Spring Security will handle authentication via session cookies
         return config;
       },
       (error) => {
@@ -52,30 +55,10 @@ class ApiService {
     this.api.interceptors.response.use(
       (response) => response,
       async (error) => {
-        const originalRequest = error.config;
-        if ((error.response?.status === 401 || error.response?.status === 403) && !originalRequest._retry) {
-          originalRequest._retry = true;
-          try {
-            const refreshToken = localStorage.getItem('refreshToken');
-            if (!refreshToken) throw new Error('no refresh token');
-            const refreshResp = await axios.post((process.env.REACT_APP_API_URL || 'http://localhost:8080/api') + '/auth/refresh', { refreshToken: refreshToken });
-            const newToken = refreshResp.data?.token;
-            const newRefreshToken = refreshResp.data?.refreshToken;
-            if (newToken) {
-              localStorage.setItem('token', newToken);
-              if (newRefreshToken) {
-                localStorage.setItem('refreshToken', newRefreshToken);
-              }
-              originalRequest.headers = originalRequest.headers || {};
-              originalRequest.headers['Authorization'] = `Bearer ${newToken}`;
-              return this.api(originalRequest);
-            }
-          } catch (_) {
-            localStorage.removeItem('token');
-            localStorage.removeItem('refreshToken');
-            localStorage.removeItem('user');
-            window.location.href = '/login';
-          }
+        // Handle authentication errors
+        if (error.response?.status === 401 || error.response?.status === 403) {
+          localStorage.removeItem('user');
+          window.location.href = '/login';
         }
         return Promise.reject(error);
       }
@@ -298,10 +281,6 @@ class ApiService {
     return response.data;
   }
 
-  async planDeliveryRoute(deliveryId: number, routeData: RoutePlanRequest): Promise<Delivery> {
-    const response: AxiosResponse<Delivery> = await this.api.post(`/deliveries/${deliveryId}/plan-route`, routeData);
-    return response.data;
-  }
 
   async completeDelivery(deliveryId: number): Promise<Delivery> {
     const response: AxiosResponse<Delivery> = await this.api.post(`/deliveries/${deliveryId}/complete`);
@@ -353,34 +332,6 @@ class ApiService {
     return response.data;
   }
 
-  // Route metrics
-  async saveRouteMetrics(payload: {
-    supplierId: number;
-    totalDistanceKm: number;
-    totalDurationMin: number;
-    stopsCount: number;
-    fuelConsumptionLPer100km?: number;
-    fuelPriceTlPerL?: number;
-  }): Promise<any> {
-    const response = await this.api.post('/deliveries/route-metrics', payload);
-    return response.data;
-  }
-
-  async recentRouteMetrics(supplierId: number): Promise<any[]> {
-    const response = await this.api.get(`/deliveries/route-metrics/recent/${supplierId}`);
-    return response.data;
-  }
-
-  // Route plan snapshot
-  async saveRoutePlan(planJson: string): Promise<number> {
-    const response = await this.api.post('/deliveries/route-plan', planJson, { headers: { 'Content-Type': 'application/json' } });
-    return response.data as number;
-  }
-
-  async getActiveRoutePlan(): Promise<string | null> {
-    const response = await this.api.get('/deliveries/route-plan/active');
-    return response.data ?? null;
-  }
 
   // Order methods
   async createOrder(orderData: any): Promise<Order> {
@@ -432,29 +383,13 @@ class ApiService {
     return response.data;
   }
 
-  async createProduct(productData: {
-    name: string;
-    description?: string;
-    unit: string;
-    price: number;
-    stockQuantity?: number;
-  }): Promise<Product> {
-    const response: AxiosResponse<Product> = await this.api.post('/products', null, {
-      params: productData
-    });
+  async createProduct(productData: ProductCreateRequest): Promise<ProductResponse> {
+    const response: AxiosResponse<ProductResponse> = await this.api.post('/products', productData);
     return response.data;
   }
 
-  async updateProduct(productId: number, productData: {
-    name: string;
-    description?: string;
-    unit: string;
-    price: number;
-    stockQuantity?: number;
-  }): Promise<Product> {
-    const response: AxiosResponse<Product> = await this.api.put(`/products/${productId}`, null, {
-      params: productData
-    });
+  async updateProduct(productId: number, productData: ProductUpdateRequest): Promise<ProductResponse> {
+    const response: AxiosResponse<ProductResponse> = await this.api.put(`/products/${productId}`, productData);
     return response.data;
   }
 
@@ -495,6 +430,63 @@ class ApiService {
   async getTotalOrderItems(): Promise<{ totalItems: number }> {
     const response: AxiosResponse<{ totalItems: number }> = await this.api.get('/orders/total-items');
     return response.data;
+  }
+
+  // Market kullanıcıları için tüm aktif ürünleri getir
+  async getAvailableProductsForMarket(): Promise<ProductResponse[]> {
+    const response: AxiosResponse<ProductResponse[]> = await this.api.get('/products/market/available');
+    return response.data;
+  }
+
+  // Tedarikçi ürünlerini ProductResponse formatında getir
+  async getSupplierProductsFormatted(): Promise<ProductResponse[]> {
+    const response: AxiosResponse<ProductResponse[]> = await this.api.get('/products/supplier/formatted');
+    return response.data;
+  }
+
+  // Cart API methods
+  async getCart(): Promise<CartItem[]> {
+    const response: AxiosResponse<CartItem[]> = await this.api.get('/cart');
+    return response.data;
+  }
+
+  async getCartDetailed(): Promise<CartResponse> {
+    const response: AxiosResponse<CartResponse> = await this.api.get('/cart/detailed');
+    return response.data;
+  }
+
+  async getCartSummary(): Promise<{ totalAmount: number; totalItems: number }> {
+    const response: AxiosResponse<{ totalAmount: number; totalItems: number }> = await this.api.get('/cart/summary');
+    return response.data;
+  }
+
+  async addItemToCart(productId: number, quantity: number): Promise<CartResponse> {
+    const response: AxiosResponse<CartResponse> = await this.api.post('/cart/add-item', {
+      productId,
+      quantity
+    });
+    return response.data;
+  }
+
+  async updateCartItem(itemId: number, quantity: number): Promise<CartResponse> {
+    const response: AxiosResponse<CartResponse> = await this.api.put(`/cart/update-item/${itemId}`, null, {
+      params: { quantity }
+    });
+    return response.data;
+  }
+
+  async removeCartItem(itemId: number): Promise<CartResponse> {
+    const response: AxiosResponse<CartResponse> = await this.api.delete(`/cart/remove-item/${itemId}`);
+    return response.data;
+  }
+
+  async clearCart(): Promise<void> {
+    await this.api.post('/cart/clear');
+  }
+
+  async downloadCartPdf(): Promise<Blob> {
+    const response = await this.api.get('/cart/pdf', { responseType: 'blob' });
+    return response.data as Blob;
   }
 }
 

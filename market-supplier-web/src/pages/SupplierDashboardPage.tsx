@@ -42,11 +42,10 @@ import {
   Refresh as RefreshIcon,
   ArrowForward as ArrowForwardIcon,
 } from '@mui/icons-material';
-import { MapPin } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import apiService from '../services/api';
-import { Market, Delivery, Order, OrderStatus, DeliveryStatus, RouteMetricsResponse } from '../types';
+import { Market, Delivery, Order, OrderStatus, DeliveryStatus } from '../types';
 import { LineChart } from '@mui/x-charts';
 import { LogoIcon } from '../components/ui/Logo';
 
@@ -61,7 +60,6 @@ const SupplierDashboardPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>('');
   const [stats, setStats] = useState({ totalMarkets: 0, totalDeliveries: 0, pendingOrders: 0, completedDeliveries: 0 });
-  const [recentMetrics, setRecentMetrics] = useState<RouteMetricsResponse[]>([]);
 
   useEffect(() => {
     const loadData = async () => {
@@ -93,15 +91,6 @@ const SupplierDashboardPage: React.FC = () => {
           console.error('Deliveries yüklenemedi:', err);
         }
 
-        // Route metrics (recent)
-        try {
-          if (user?.id) {
-            const metrics = await apiService.recentRouteMetrics(user.id);
-            setRecentMetrics(metrics || []);
-          }
-        } catch (err) {
-          console.error('Route metrics yüklenemedi:', err);
-        }
         
         // Pending Orders (paged)
         try { 

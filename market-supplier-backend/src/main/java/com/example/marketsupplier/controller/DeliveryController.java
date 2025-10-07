@@ -11,6 +11,7 @@ import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.security.core.Authentication;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -28,8 +29,6 @@ public class DeliveryController {
     @Autowired
     private DeliveryService deliveryService;
 
-    @Autowired
-    private com.example.marketsupplier.service.WhatsAppService whatsAppService;
     
     @Autowired
     private SupplierService supplierService;
@@ -37,11 +36,6 @@ public class DeliveryController {
     @Autowired
     private AuthService authService;
     
-    @Autowired
-    private com.example.marketsupplier.service.RouteMetricsService routeMetricsService;
-
-    @Autowired
-    private com.example.marketsupplier.service.RoutePlanService routePlanService;
 
     // Basit canlı ETA push: stopsAhead azaldığında marketi haberdar et
     @PostMapping("/{deliveryId}/progress")
@@ -57,13 +51,7 @@ public class DeliveryController {
             // stopsAhead karşılaştır
             Integer oldStops = extractStopsAhead(oldInfo);
             Integer newStops = extractStopsAhead(routeInfoJson);
-            if (newStops != null && (oldStops == null || newStops < oldStops)) {
-                try {
-                    String phone = d.getOrder().getMarket().getPhone();
-                    String msg = "🚚 Teslimat güncellendi: sizden önce kalan durak sayısı " + newStops + ".";
-                    whatsAppService.sendTextMessage(phone, msg);
-                } catch (Exception ignored) {}
-            }
+            // WhatsApp notification removed - no longer needed
             return ResponseEntity.ok(new MessageResponse("Progress updated"));
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new ErrorResponse("Failed to update progress"));
@@ -84,22 +72,22 @@ public class DeliveryController {
     // Create delivery assignment
     @PostMapping
     public ResponseEntity<?> createDelivery(@Valid @RequestBody DeliveryRequest deliveryRequest,
-                                          @RequestHeader("Authorization") String token) {
+                                          Authentication authentication) {
         try {
-            Long userId = getUserIdFromToken(token);
+            Long userId = getUserIdFromAuthentication(authentication);
             if (userId == null) {
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                     .body(new ErrorResponse("Invalid token"));
             }
             
             // Check if user is admin or supplier
-            if (!isAdmin(token) && !isSupplier(token)) {
+            if (!isAdmin(authentication) && !isSupplier(authentication)) {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN)
                     .body(new ErrorResponse("Access denied. Admin or Supplier role required."));
             }
             
             // If supplier, check if they own the supplier
-            if (isSupplier(token) && !supplierService.isSupplierOwner(deliveryRequest.getSupplierId(), userId)) {
+            if (isSupplier(authentication) && !supplierService.isSupplierOwner(deliveryRequest.getSupplierId(), userId)) {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN)
                     .body(new ErrorResponse("Access denied."));
             }
@@ -128,130 +116,21 @@ public class DeliveryController {
         }
     }
     
-    // Plan delivery route
-    @PostMapping("/{deliveryId}/plan-route")
-    public ResponseEntity<?> planDeliveryRoute(@PathVariable Long deliveryId,
-                                             @Valid @RequestBody RoutePlanRequest routeRequest,
-                                             @RequestHeader("Authorization") String token) {
-        try {
-            Long userId = getUserIdFromToken(token);
-            if (userId == null) {
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(new ErrorResponse("Invalid token"));
-            }
-            
-            // Check if user owns the delivery
-            if (!isAdmin(token) && !deliveryService.isDeliveryOwner(deliveryId, userId)) {
-                return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                    .body(new ErrorResponse("Access denied."));
-            }
-            
-            Delivery delivery = deliveryService.planDeliveryRoute(deliveryId, routeRequest.getRouteInfo());
-            
-            DeliveryResponse deliveryResponse = new DeliveryResponse(
-                delivery.getId(),
-                delivery.getOrder().getId(),
-                delivery.getOrder().getMarket().getName(),
-                delivery.getOrder().getMarket().getAddress(),
-                delivery.getSupplier().getId(),
-                delivery.getSupplier().getCompanyName(),
-                delivery.getDeliveryStatus(),
-                delivery.getCreatedAt()
-            );
-            deliveryResponse.setRouteInfo(delivery.getRouteInfo());
-            
-            return ResponseEntity.ok(deliveryResponse);
-            
-        } catch (RuntimeException e) {
-            return ResponseEntity.badRequest()
-                .body(new ErrorResponse("Failed to plan delivery route: " + e.getMessage()));
-        }
-    }
 
-    // --- Route metrics: persist calculated route totals & fuel estimates ---
-    @PostMapping("/route-metrics")
-    public ResponseEntity<?> saveRouteMetrics(@RequestBody RouteMetricsRequest req,
-                                            @RequestHeader("Authorization") String token) {
-        try {
-            Long userId = getUserIdFromToken(token);
-            if (userId == null) {
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(new ErrorResponse("Invalid token"));
-            }
-            // Admin veya ilgili tedarikçi sahibi
-            if (!isAdmin(token) && !supplierService.isSupplierOwner(req.getSupplierId(), userId)) {
-                return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                    .body(new ErrorResponse("Access denied."));
-            }
-            var saved = routeMetricsService.saveMetrics(req);
-            return ResponseEntity.ok(saved);
-        } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().body(new ErrorResponse("Failed to save route metrics: " + e.getMessage()));
-        }
-    }
-
-    // --- Route plan snapshot (save/load) ---
-    @PostMapping("/route-plan")
-    public ResponseEntity<?> saveRoutePlan(@RequestHeader("Authorization") String token,
-                                           @RequestBody String planJson) {
-        try {
-            Long userId = getUserIdFromToken(token);
-            if (userId == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(new ErrorResponse("Invalid token"));
-            var supplierOpt = supplierService.findByUserId(userId);
-            if (supplierOpt.isEmpty()) return ResponseEntity.badRequest().body(new ErrorResponse("Supplier not found"));
-            var snap = routePlanService.savePlan(supplierOpt.get().getId(), planJson);
-            return ResponseEntity.ok().body(snap.getId());
-        } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().body(new ErrorResponse("Failed to save plan: " + e.getMessage()));
-        }
-    }
-
-    @GetMapping("/route-plan/active")
-    public ResponseEntity<?> getActiveRoutePlan(@RequestHeader("Authorization") String token) {
-        try {
-            Long userId = getUserIdFromToken(token);
-            if (userId == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(new ErrorResponse("Invalid token"));
-            var supplierOpt = supplierService.findByUserId(userId);
-            if (supplierOpt.isEmpty()) return ResponseEntity.ok().body(null);
-            var snap = routePlanService.getActivePlan(supplierOpt.get().getId());
-            return ResponseEntity.ok(snap != null ? snap.getPlanJson() : null);
-        } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().body(new ErrorResponse("Failed to load plan: " + e.getMessage()));
-        }
-    }
-
-    @GetMapping("/route-metrics/recent/{supplierId}")
-    public ResponseEntity<?> recentRouteMetrics(@PathVariable Long supplierId,
-                                                @RequestHeader("Authorization") String token) {
-        try {
-            Long userId = getUserIdFromToken(token);
-            if (userId == null) {
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(new ErrorResponse("Invalid token"));
-            }
-            if (!isAdmin(token) && !supplierService.isSupplierOwner(supplierId, userId)) {
-                return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                    .body(new ErrorResponse("Access denied."));
-            }
-            return ResponseEntity.ok(routeMetricsService.recentForSupplier(supplierId));
-        } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().body(new ErrorResponse("Failed to load route metrics: " + e.getMessage()));
-        }
-    }
     
     // Complete delivery
     @PostMapping("/{deliveryId}/complete")
     public ResponseEntity<?> completeDelivery(@PathVariable Long deliveryId,
-                                            @RequestHeader("Authorization") String token) {
+                                            Authentication authentication) {
         try {
-            Long userId = getUserIdFromToken(token);
+            Long userId = getUserIdFromAuthentication(authentication);
             if (userId == null) {
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                     .body(new ErrorResponse("Invalid token"));
             }
             
             // Check if user owns the delivery (convert userId to supplierId)
-            boolean hasAccess = isAdmin(token);
+            boolean hasAccess = isAdmin(authentication);
             if (!hasAccess) {
                 var supplierOptional = supplierService.findByUserId(userId);
                 if (supplierOptional.isPresent()) {
@@ -291,16 +170,16 @@ public class DeliveryController {
     // Get deliveries by supplier
     @GetMapping("/supplier/{supplierId}")
     public ResponseEntity<?> getDeliveriesBySupplier(@PathVariable Long supplierId,
-                                                    @RequestHeader("Authorization") String token) {
+                                                    Authentication authentication) {
         try {
-            Long userId = getUserIdFromToken(token);
+            Long userId = getUserIdFromAuthentication(authentication);
             if (userId == null) {
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                     .body(new ErrorResponse("Invalid token"));
             }
             
             // Check if user is admin or supplier owner
-            if (!isAdmin(token) && !supplierService.isSupplierOwner(supplierId, userId)) {
+            if (!isAdmin(authentication) && !supplierService.isSupplierOwner(supplierId, userId)) {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN)
                     .body(new ErrorResponse("Access denied."));
             }
@@ -335,19 +214,19 @@ public class DeliveryController {
     
     // Get my deliveries (for current supplier) with pagination
     @GetMapping("/my-deliveries")
-    public ResponseEntity<?> getMyDeliveries(@RequestHeader("Authorization") String token,
+    public ResponseEntity<?> getMyDeliveries(Authentication authentication,
                                            @RequestParam(defaultValue = "0") int page,
                                            @RequestParam(defaultValue = "10") int size,
                                            @RequestParam(defaultValue = "createdAt") String sortBy,
                                            @RequestParam(defaultValue = "desc") String sortDir) {
         try {
-            Long userId = getUserIdFromToken(token);
+            Long userId = getUserIdFromAuthentication(authentication);
             if (userId == null) {
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                     .body(new ErrorResponse("Invalid token"));
             }
             
-            if (!isSupplier(token)) {
+            if (!isSupplier(authentication)) {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN)
                     .body(new ErrorResponse("Access denied. Supplier role required."));
             }
@@ -409,20 +288,20 @@ public class DeliveryController {
     
     // Get all deliveries (Admin only) with pagination
     @GetMapping("/all")
-    public ResponseEntity<?> getAllDeliveries(@RequestHeader("Authorization") String token,
+    public ResponseEntity<?> getAllDeliveries(Authentication authentication,
                                             @RequestParam(defaultValue = "0") int page,
                                             @RequestParam(defaultValue = "10") int size,
                                             @RequestParam(defaultValue = "createdAt") String sortBy,
                                             @RequestParam(defaultValue = "desc") String sortDir) {
         try {
-            Long userId = getUserIdFromToken(token);
+            Long userId = getUserIdFromAuthentication(authentication);
             if (userId == null) {
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                     .body(new ErrorResponse("Invalid token"));
             }
             
             // Only admin can access all deliveries
-            if (!isAdmin(token)) {
+            if (!isAdmin(authentication)) {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN)
                     .body(new ErrorResponse("Access denied. Admin role required."));
             }
@@ -475,16 +354,16 @@ public class DeliveryController {
     // Get in-progress deliveries for supplier
     @GetMapping("/supplier/{supplierId}/in-progress")
     public ResponseEntity<?> getInProgressDeliveriesForSupplier(@PathVariable Long supplierId,
-                                                               @RequestHeader("Authorization") String token) {
+                                                               Authentication authentication) {
         try {
-            Long userId = getUserIdFromToken(token);
+            Long userId = getUserIdFromAuthentication(authentication);
             if (userId == null) {
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                     .body(new ErrorResponse("Invalid token"));
             }
             
             // Check if user is admin or supplier owner
-            if (!isAdmin(token) && !supplierService.isSupplierOwner(supplierId, userId)) {
+            if (!isAdmin(authentication) && !supplierService.isSupplierOwner(supplierId, userId)) {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN)
                     .body(new ErrorResponse("Access denied."));
             }
@@ -519,16 +398,16 @@ public class DeliveryController {
     @GetMapping("/supplier/{supplierId}/daily")
     public ResponseEntity<?> getDailyDeliveriesForSupplier(@PathVariable Long supplierId,
                                                           @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime date,
-                                                          @RequestHeader("Authorization") String token) {
+                                                          Authentication authentication) {
         try {
-            Long userId = getUserIdFromToken(token);
+            Long userId = getUserIdFromAuthentication(authentication);
             if (userId == null) {
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                     .body(new ErrorResponse("Invalid token"));
             }
             
             // Check if user is admin or supplier owner
-            if (!isAdmin(token) && !supplierService.isSupplierOwner(supplierId, userId)) {
+            if (!isAdmin(authentication) && !supplierService.isSupplierOwner(supplierId, userId)) {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN)
                     .body(new ErrorResponse("Access denied."));
             }
@@ -563,9 +442,9 @@ public class DeliveryController {
     
     // Get delivery by ID
     @GetMapping("/{id}")
-    public ResponseEntity<?> getDeliveryById(@PathVariable Long id, @RequestHeader("Authorization") String token) {
+    public ResponseEntity<?> getDeliveryById(@PathVariable Long id, Authentication authentication) {
         try {
-            Long userId = getUserIdFromToken(token);
+            Long userId = getUserIdFromAuthentication(authentication);
             if (userId == null) {
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                     .body(new ErrorResponse("Invalid token"));
@@ -579,7 +458,7 @@ public class DeliveryController {
             Delivery delivery = deliveryOptional.get();
             
             // Check access permissions
-            boolean hasAccess = isAdmin(token) || 
+            boolean hasAccess = isAdmin(authentication) || 
                               deliveryService.isDeliveryOwner(id, userId);
             
             if (!hasAccess) {
@@ -611,9 +490,9 @@ public class DeliveryController {
     
     // Get delivery statistics
     @GetMapping("/stats")
-    public ResponseEntity<?> getDeliveryStats(@RequestHeader("Authorization") String token) {
+    public ResponseEntity<?> getDeliveryStats(Authentication authentication) {
         try {
-            if (!isAdmin(token)) {
+            if (!isAdmin(authentication)) {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN)
                     .body(new ErrorResponse("Access denied. Admin role required."));
             }
@@ -679,18 +558,7 @@ public class DeliveryController {
             // Update updatedAt via service save path
             deliveryService.planDeliveryRoute(deliveryId, d.getRouteInfo());
             // Notify market via WhatsApp
-            try {
-                String phone = d.getOrder().getMarket().getPhone();
-                Integer stops = null;
-                if (d.getRouteInfo() != null && d.getRouteInfo().contains("stopsAhead")) {
-                    String s = d.getRouteInfo();
-                    String num = s.replaceAll(".*stopsAhead[^0-9]*([0-9]+).*", "$1");
-                    if (num != null && num.matches("[0-9]+")) stops = Integer.parseInt(num);
-                }
-                String msg = "🚚 Siparişiniz yola çıktı. Bugün içinde teslim edilecek" +
-                    (stops != null ? ", sizden önce " + stops + " durak var." : ".");
-                whatsAppService.sendTextMessage(phone, msg);
-            } catch (Exception ignored) {}
+            // WhatsApp notification removed - no longer needed
             return ResponseEntity.ok(new MessageResponse("Dispatch started"));
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new ErrorResponse("Failed to dispatch"));
@@ -698,31 +566,28 @@ public class DeliveryController {
     }
     
     // Helper methods
-    private Long getUserIdFromToken(String token) {
+    private Long getUserIdFromAuthentication(Authentication authentication) {
         try {
-            String jwtToken = token.substring(7);
-            var userOptional = authService.validateTokenAndGetUser(jwtToken);
-            return userOptional.map(User::getId).orElse(null);
+            User user = (User) authentication.getPrincipal();
+            return user.getId();
         } catch (Exception e) {
             return null;
         }
     }
     
-    private boolean isAdmin(String token) {
+    private boolean isAdmin(Authentication authentication) {
         try {
-            String jwtToken = token.substring(7);
-            var userOptional = authService.validateTokenAndGetUser(jwtToken);
-            return userOptional.isPresent() && userOptional.get().getRole() == UserRole.ADMIN;
+            User user = (User) authentication.getPrincipal();
+            return user.getRole() == UserRole.ADMIN;
         } catch (Exception e) {
             return false;
         }
     }
     
-    private boolean isSupplier(String token) {
+    private boolean isSupplier(Authentication authentication) {
         try {
-            String jwtToken = token.substring(7);
-            var userOptional = authService.validateTokenAndGetUser(jwtToken);
-            return userOptional.isPresent() && userOptional.get().getRole() == UserRole.SUPPLIER;
+            User user = (User) authentication.getPrincipal();
+            return user.getRole() == UserRole.SUPPLIER;
         } catch (Exception e) {
             return false;
         }

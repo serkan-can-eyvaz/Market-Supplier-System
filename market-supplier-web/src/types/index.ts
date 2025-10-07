@@ -37,12 +37,12 @@ export interface RegisterRequest {
 }
 
 export interface AuthResponse {
-  token: string;
-  refreshToken: string;
-  userId: number;
-  name: string;
-  email: string;
-  role: UserRole;
+  user: {
+    id: number;
+    name: string;
+    email: string;
+    role: UserRole;
+  };
   message?: string;
 }
 
@@ -151,10 +151,6 @@ export interface DeliveryRequest {
   supplierId: number;
 }
 
-export interface RoutePlanRequest {
-  routeInfo: string;
-}
-
 // API Response Types
 export interface ApiResponse<T> {
   data?: T;
@@ -201,29 +197,6 @@ export interface DeliveryStats {
   completedDeliveries: number;
 }
 
-// Route Metrics Types
-export interface RouteMetricsRequest {
-  supplierId: number;
-  totalDistanceKm: number;
-  totalDurationMin: number;
-  stopsCount: number;
-  fuelConsumptionLPer100km?: number;
-  fuelPriceTlPerL?: number;
-}
-
-export interface RouteMetricsResponse {
-  id: number;
-  supplierId: number;
-  totalDistanceKm: number;
-  totalDurationMin: number;
-  stopsCount: number;
-  fuelConsumptionLPer100km: number;
-  fuelPriceTlPerL: number;
-  fuelEstimateLiters: number;
-  fuelCostEstimateTl: number;
-  createdAt: string;
-}
-
 // Product Types
 export interface Product {
   id: number;
@@ -239,4 +212,74 @@ export interface Product {
     companyName: string;
   };
   stockQuantity?: number;
+}
+
+export interface ProductResponse {
+  id: number;
+  name: string;
+  description?: string;
+  unit: string;
+  price: number;
+  stockQuantity: number;
+  isActive: boolean;
+  supplierCompanyName?: string;
+  supplierId?: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ProductCreateRequest {
+  name: string;
+  description?: string;
+  unit: string;
+  price: number;
+  stockQuantity: number;
+}
+
+export interface ProductUpdateRequest {
+  name?: string;
+  description?: string;
+  unit?: string;
+  price?: number;
+  stockQuantity?: number;
+  isActive?: boolean;
+}
+
+// Cart Types
+export interface CartItem {
+  id: number;
+  productId: number;
+  productName: string;
+  unit: string;
+  price: number;
+  quantity: number;
+  lineTotal: number;
+  supplierName?: string;
+}
+
+export interface Cart {
+  id: number;
+  marketId: number;
+  marketName: string;
+  items: CartItem[];
+  totalAmount: number;
+  totalItems: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CartItemRequest {
+  productId: number;
+  quantity: number;
+}
+
+export interface CartResponse {
+  id: number;
+  marketId: number;
+  marketName: string;
+  items: CartItem[];
+  totalAmount: number;
+  totalItems: number;
+  createdAt: string;
+  updatedAt: string;
 }

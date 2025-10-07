@@ -5,6 +5,8 @@ import com.example.marketsupplier.entity.Supplier;
 import com.example.marketsupplier.entity.User;
 import com.example.marketsupplier.repository.ProductRepository;
 import com.example.marketsupplier.repository.SupplierRepository;
+import com.example.marketsupplier.dto.ProductCreateRequest;
+import com.example.marketsupplier.dto.ProductUpdateRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
@@ -72,6 +74,11 @@ public class ProductService {
 
     @CacheEvict(value = "products", key = "#user.id + '_*'")
     public Product createProduct(User user, String name, String description, String unit, BigDecimal price) {
+        return createProduct(user, name, description, unit, price, 0);
+    }
+    
+    @CacheEvict(value = "products", key = "#user.id + '_*'")
+    public Product createProduct(User user, String name, String description, String unit, BigDecimal price, Integer stockQuantity) {
         System.out.println("DEBUG: createProduct called for user: " + user.getEmail() + ", role: " + user.getRole());
         
         Supplier supplier = getOrCreateSupplier(user);
@@ -89,7 +96,7 @@ public class ProductService {
         product.setUnit(unit);
         product.setPrice(price);
         product.setIsActive(true);
-        product.setStockQuantity(0);
+        product.setStockQuantity(stockQuantity != null ? stockQuantity : 0);
         
         System.out.println("DEBUG: Saving product: " + product.getName());
         Product savedProduct = productRepository.save(product);
@@ -99,6 +106,11 @@ public class ProductService {
         asyncService.cacheWarmupAsync();
         
         return savedProduct;
+    }
+    
+    public Product createProduct(User user, ProductCreateRequest request) {
+        return createProduct(user, request.getName(), request.getDescription(), request.getUnit(), 
+                           request.getPrice(), request.getStockQuantity());
     }
 
     public Product updateProduct(User user, Long productId, String name, String description, String unit, BigDecimal price) {
@@ -116,6 +128,40 @@ public class ProductService {
         product.setDescription(description);
         product.setUnit(unit);
         product.setPrice(price);
+
+        return productRepository.save(product);
+    }
+    
+    public Product updateProduct(User user, Long productId, ProductUpdateRequest request) {
+        Supplier supplier = supplierRepository.findByUser(user)
+                .orElseThrow(() -> new RuntimeException("Tedarikçi bulunamadı"));
+
+        Product product = productRepository.findByIdAndSupplier(productId, supplier)
+                .orElseThrow(() -> new RuntimeException("Ürün bulunamadı"));
+
+        // Check name uniqueness if name is being updated
+        if (request.getName() != null && !request.getName().equals(product.getName())) {
+            if (productRepository.existsBySupplierAndNameIgnoreCaseAndIdNot(supplier, request.getName(), productId)) {
+                throw new RuntimeException("Bu ürün adı zaten mevcut");
+            }
+            product.setName(request.getName());
+        }
+
+        if (request.getDescription() != null) {
+            product.setDescription(request.getDescription());
+        }
+        if (request.getUnit() != null) {
+            product.setUnit(request.getUnit());
+        }
+        if (request.getPrice() != null) {
+            product.setPrice(request.getPrice());
+        }
+        if (request.getStockQuantity() != null) {
+            product.setStockQuantity(request.getStockQuantity());
+        }
+        if (request.getIsActive() != null) {
+            product.setIsActive(request.getIsActive());
+        }
 
         return productRepository.save(product);
     }

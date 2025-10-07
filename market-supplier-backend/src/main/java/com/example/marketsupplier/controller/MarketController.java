@@ -11,6 +11,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.security.core.Authentication;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -33,9 +34,9 @@ public class MarketController {
     // Create market
     @PostMapping
     public ResponseEntity<?> createMarket(@Valid @RequestBody MarketRequest marketRequest,
-                                        @RequestHeader("Authorization") String token) {
+                                        Authentication authentication) {
         try {
-            Long userId = getUserIdFromToken(token);
+            Long userId = getUserIdFromAuthentication(authentication);
             if (userId == null) {
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                     .body(new ErrorResponse("Invalid token"));
@@ -69,9 +70,9 @@ public class MarketController {
     
     // Get all markets
     @GetMapping
-    public ResponseEntity<?> getAllMarkets(@RequestHeader("Authorization") String token) {
+    public ResponseEntity<?> getAllMarkets(Authentication authentication) {
         try {
-            if (!isAdmin(token)) {
+            if (!isAdmin(authentication)) {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN)
                     .body(new ErrorResponse("Access denied. Admin role required."));
             }
@@ -100,16 +101,16 @@ public class MarketController {
     
     // Get market by ID
     @GetMapping("/{id}")
-    public ResponseEntity<?> getMarketById(@PathVariable Long id, @RequestHeader("Authorization") String token) {
+    public ResponseEntity<?> getMarketById(@PathVariable Long id, Authentication authentication) {
         try {
-            Long userId = getUserIdFromToken(token);
+            Long userId = getUserIdFromAuthentication(authentication);
             if (userId == null) {
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                     .body(new ErrorResponse("Invalid token"));
             }
             
             // Check if user is admin or market owner (supplier who created it)
-            if (!isAdmin(token) && !marketService.isMarketOwner(id, userId)) {
+            if (!isAdmin(authentication) && !marketService.isMarketOwner(id, userId)) {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN)
                     .body(new ErrorResponse("Access denied."));
             }
@@ -143,13 +144,13 @@ public class MarketController {
 
     // Get current user's markets (list) with pagination  
     @GetMapping("/my-markets")
-    public ResponseEntity<?> getMyMarkets(@RequestHeader("Authorization") String token,
+    public ResponseEntity<?> getMyMarkets(Authentication authentication,
                                         @RequestParam(defaultValue = "0") int page,
                                         @RequestParam(defaultValue = "10") int size,
                                         @RequestParam(defaultValue = "createdAt") String sortBy,
                                         @RequestParam(defaultValue = "desc") String sortDir) {
         try {
-            Long userId = getUserIdFromToken(token);
+            Long userId = getUserIdFromAuthentication(authentication);
             if (userId == null) {
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                     .body(new ErrorResponse("Invalid token"));
@@ -193,9 +194,9 @@ public class MarketController {
     
     // Search markets by name
     @GetMapping("/search")
-    public ResponseEntity<?> searchMarketsByName(@RequestParam String name, @RequestHeader("Authorization") String token) {
+    public ResponseEntity<?> searchMarketsByName(@RequestParam String name, Authentication authentication) {
         try {
-            if (!isAdmin(token)) {
+            if (!isAdmin(authentication)) {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN)
                     .body(new ErrorResponse("Access denied. Admin role required."));
             }
@@ -226,16 +227,16 @@ public class MarketController {
     @PutMapping("/{id}")
     public ResponseEntity<?> updateMarket(@PathVariable Long id,
                                         @Valid @RequestBody MarketRequest marketRequest,
-                                        @RequestHeader("Authorization") String token) {
+                                        Authentication authentication) {
         try {
-            Long userId = getUserIdFromToken(token);
+            Long userId = getUserIdFromAuthentication(authentication);
             if (userId == null) {
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                     .body(new ErrorResponse("Invalid token"));
             }
             
             // Check if user is admin or market owner
-            if (!isAdmin(token) && !marketService.isMarketOwner(id, userId)) {
+            if (!isAdmin(authentication) && !marketService.isMarketOwner(id, userId)) {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN)
                     .body(new ErrorResponse("Access denied."));
             }
@@ -268,16 +269,16 @@ public class MarketController {
     
     // Delete market
     @DeleteMapping("/{id}")
-    public ResponseEntity<?> deleteMarket(@PathVariable Long id, @RequestHeader("Authorization") String token) {
+    public ResponseEntity<?> deleteMarket(@PathVariable Long id, Authentication authentication) {
         try {
-            Long userId = getUserIdFromToken(token);
+            Long userId = getUserIdFromAuthentication(authentication);
             if (userId == null) {
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                     .body(new ErrorResponse("Invalid token"));
             }
             
             // Admin veya market sahibi silebilir
-            if (!isAdmin(token) && !marketService.isMarketOwner(id, userId)) {
+            if (!isAdmin(authentication) && !marketService.isMarketOwner(id, userId)) {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN)
                     .body(new ErrorResponse("Access denied. Only admin or market owner can delete."));
             }
@@ -293,9 +294,9 @@ public class MarketController {
     
     // Get market statistics
     @GetMapping("/stats")
-    public ResponseEntity<?> getMarketStats(@RequestHeader("Authorization") String token) {
+    public ResponseEntity<?> getMarketStats(Authentication authentication) {
         try {
-            if (!isAdmin(token)) {
+            if (!isAdmin(authentication)) {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN)
                     .body(new ErrorResponse("Access denied. Admin role required."));
             }
@@ -310,21 +311,19 @@ public class MarketController {
     }
     
     // Helper methods
-    private Long getUserIdFromToken(String token) {
+    private Long getUserIdFromAuthentication(Authentication authentication) {
         try {
-            String jwtToken = token.substring(7);
-            var userOptional = authService.validateTokenAndGetUser(jwtToken);
-            return userOptional.map(User::getId).orElse(null);
+            User user = (User) authentication.getPrincipal();
+            return user.getId();
         } catch (Exception e) {
             return null;
         }
     }
     
-    private boolean isAdmin(String token) {
+    private boolean isAdmin(Authentication authentication) {
         try {
-            String jwtToken = token.substring(7);
-            var userOptional = authService.validateTokenAndGetUser(jwtToken);
-            return userOptional.isPresent() && userOptional.get().getRole() == UserRole.ADMIN;
+            User user = (User) authentication.getPrincipal();
+            return user.getRole() == UserRole.ADMIN;
         } catch (Exception e) {
             return false;
         }

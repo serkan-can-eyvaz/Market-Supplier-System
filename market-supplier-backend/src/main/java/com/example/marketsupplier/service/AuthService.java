@@ -18,9 +18,6 @@ public class AuthService {
     private UserService userService;
     
     @Autowired
-    private JwtService jwtService;
-    
-    @Autowired
     private AuthenticationManager authenticationManager;
     
     // Register new user
@@ -33,10 +30,7 @@ public class AuthService {
             // Create user
             User user = userService.createUser(name, email, password, role);
             
-            // Generate JWT token
-            String token = jwtService.generateToken(user.getEmail());
-            
-            return new AuthResponse(token, user.getId(), user.getName(), user.getEmail(), user.getRole());
+            return new AuthResponse(user.getId(), user.getName(), user.getEmail(), user.getRole());
             
         } catch (RuntimeException e) {
             throw new RuntimeException("Registration failed: " + e.getMessage());
@@ -59,44 +53,10 @@ public class AuthService {
             
             User user = userOptional.get();
             
-            // Generate JWT token
-            String token = jwtService.generateToken(user.getEmail());
-            
-            return new AuthResponse(token, user.getId(), user.getName(), user.getEmail(), user.getRole());
+            return new AuthResponse(user.getId(), user.getName(), user.getEmail(), user.getRole());
             
         } catch (AuthenticationException e) {
             throw new RuntimeException("Invalid email or password");
-        }
-    }
-    
-    // Validate token and get user
-    public Optional<User> validateTokenAndGetUser(String token) {
-        try {
-            String email = jwtService.extractUsername(token);
-            if (email != null && jwtService.isTokenValid(token, email)) {
-                return userService.findByEmail(email);
-            }
-            return Optional.empty();
-        } catch (Exception e) {
-            return Optional.empty();
-        }
-    }
-    
-    // Refresh token
-    public AuthResponse refreshToken(String token) {
-        try {
-            String email = jwtService.extractUsername(token);
-            if (email != null && jwtService.isTokenValid(token, email)) {
-                Optional<User> userOptional = userService.findByEmail(email);
-                if (userOptional.isPresent()) {
-                    User user = userOptional.get();
-                    String newToken = jwtService.generateToken(user.getEmail());
-                    return new AuthResponse(newToken, user.getId(), user.getName(), user.getEmail(), user.getRole());
-                }
-            }
-            throw new RuntimeException("Invalid token");
-        } catch (Exception e) {
-            throw new RuntimeException("Token refresh failed: " + e.getMessage());
         }
     }
     
@@ -113,14 +73,12 @@ public class AuthService {
     
     // Inner class for authentication response
     public static class AuthResponse {
-        private final String token;
         private final Long userId;
         private final String name;
         private final String email;
         private final UserRole role;
         
-        public AuthResponse(String token, Long userId, String name, String email, UserRole role) {
-            this.token = token;
+        public AuthResponse(Long userId, String name, String email, UserRole role) {
             this.userId = userId;
             this.name = name;
             this.email = email;
@@ -128,7 +86,6 @@ public class AuthService {
         }
         
         // Getters
-        public String getToken() { return token; }
         public Long getUserId() { return userId; }
         public String getName() { return name; }
         public String getEmail() { return email; }
