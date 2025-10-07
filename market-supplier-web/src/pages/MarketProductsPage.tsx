@@ -6,7 +6,6 @@ import {
   Card,
   CardContent,
   CardActions,
-  Grid,
   TextField,
   InputAdornment,
   IconButton,
@@ -326,9 +325,9 @@ const MarketProductsPage: React.FC = () => {
           <Typography variant="h6">Ürünler yükleniyor...</Typography>
         </Paper>
       ) : (
-        <Grid container spacing={3}>
+        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr', md: 'repeat(3, 1fr)', lg: 'repeat(4, 1fr)' }, gap: 3 }}>
           {filteredProducts.map((product) => (
-            <Grid item xs={12} sm={6} md={4} lg={3} key={product.id}>
+            <Box key={product.id}>
               <Card sx={{
                 height: '100%',
                 display: 'flex',
@@ -430,9 +429,9 @@ const MarketProductsPage: React.FC = () => {
                   </Button>
                 </CardActions>
               </Card>
-            </Grid>
+            </Box>
           ))}
-        </Grid>
+        </Box>
       )}
 
       {/* Cart Dialog */}
