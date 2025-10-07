@@ -42,6 +42,7 @@ export interface AuthResponse {
     name: string;
     email: string;
     role: UserRole;
+    createdAt: string;
   };
   message?: string;
 }

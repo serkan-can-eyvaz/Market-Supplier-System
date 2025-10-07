@@ -40,7 +40,8 @@ public class AuthController {
                     "id", user.getId(),
                     "email", user.getEmail(),
                     "name", user.getName(),
-                    "role", user.getRole().name()
+                    "role", user.getRole().name(),
+                    "createdAt", user.getCreatedAt().toString()
             ));
             response.put("message", "Giriş başarılı");
 
@@ -75,7 +76,8 @@ public class AuthController {
                     "id", user.getId(),
                     "email", user.getEmail(),
                     "name", user.getName(),
-                    "role", user.getRole().name()
+                    "role", user.getRole().name(),
+                    "createdAt", user.getCreatedAt().toString()
             ));
             response.put("message", "Kayıt başarılı");
 
@@ -97,7 +99,8 @@ public class AuthController {
                     "id", user.getId(),
                     "email", user.getEmail(),
                     "name", user.getName(),
-                    "role", user.getRole().name()
+                    "role", user.getRole().name(),
+                    "createdAt", user.getCreatedAt().toString()
             ));
 
             return ResponseEntity.ok(response);
