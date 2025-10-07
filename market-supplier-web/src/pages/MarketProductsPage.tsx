@@ -328,7 +328,7 @@ const MarketProductsPage: React.FC = () => {
       ) : (
         <Grid container spacing={3}>
           {filteredProducts.map((product) => (
-            <Grid xs={12} sm={6} md={4} lg={3} key={product.id}>
+            <Grid item xs={12} sm={6} md={4} lg={3} key={product.id}>
               <Card sx={{
                 height: '100%',
                 display: 'flex',
