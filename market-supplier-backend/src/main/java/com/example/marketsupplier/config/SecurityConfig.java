@@ -37,6 +37,7 @@ public class SecurityConfig {
                 .requestMatchers("/api/auth/**").permitAll()
                 .requestMatchers("/api/utils/**").permitAll()
                 .requestMatchers("/api/orders/status/**").permitAll()
+                .requestMatchers("/api/health").permitAll()
                 .requestMatchers("/error").permitAll()
                 .requestMatchers("/api/suppliers/check-company-name").permitAll()
                 .requestMatchers("/h2-console/**").permitAll()
