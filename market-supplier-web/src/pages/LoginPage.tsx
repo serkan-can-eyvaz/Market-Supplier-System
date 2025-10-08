@@ -69,13 +69,13 @@ const LoginPage: React.FC = () => {
       const userRole = response.user?.role;
       
       if (userRole === 'ADMIN') {
-        window.location.href = '/admin-dashboard';
+        navigate('/admin-dashboard');
       } else if (userRole === 'SUPPLIER') {
-        window.location.href = '/supplier-dashboard';
+        navigate('/supplier-dashboard');
       } else if (userRole === 'MARKET') {
-        window.location.href = '/market-dashboard';
+        navigate('/market-dashboard');
       } else {
-        window.location.href = '/dashboard';
+        navigate('/dashboard');
       }
     } catch (err: any) {
       setError(err.response?.data?.message || 'Giriş yapılırken bir hata oluştu');
