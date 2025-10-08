@@ -2,6 +2,7 @@ package com.example.marketsupplier.controller;
 
 import com.example.marketsupplier.service.UserService;
 import com.example.marketsupplier.entity.User;
+import com.example.marketsupplier.config.CustomUserDetailsService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
