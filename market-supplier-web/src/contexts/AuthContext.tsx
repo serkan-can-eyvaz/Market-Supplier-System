@@ -78,15 +78,16 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  const logout = () => {
-    setUser(null);
-    localStorage.removeItem('user');
-    
-    // Call backend logout endpoint
-    fetch('/api/auth/logout', {
-      method: 'POST',
-      credentials: 'include'
-    }).catch(console.error);
+  const logout = async () => {
+    try {
+      // Call backend logout endpoint
+      await apiService.logout();
+    } catch (error) {
+      console.error('Logout error:', error);
+    } finally {
+      setUser(null);
+      localStorage.removeItem('user');
+    }
   };
 
   const isAuthenticated = !!user;

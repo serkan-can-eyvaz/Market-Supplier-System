@@ -52,6 +52,7 @@ class ApiService {
       headers: {
         'Content-Type': 'application/json',
       },
+      withCredentials: true, // Session cookie'leri için gerekli
     });
 
     // Request interceptor for session-based authentication

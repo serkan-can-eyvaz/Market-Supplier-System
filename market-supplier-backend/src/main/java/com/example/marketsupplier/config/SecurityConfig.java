@@ -102,11 +102,17 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOriginPatterns(List.of("*"));
+        // Session cookie'leri için spesifik origin'ler
+        configuration.setAllowedOrigins(Arrays.asList(
+            "http://localhost:3000",
+            "https://tedarikasistani.com",
+            "https://www.tedarikasistani.com"
+        ));
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(Arrays.asList("*"));
         configuration.setAllowCredentials(true);
         configuration.setExposedHeaders(Arrays.asList("Content-Disposition"));
+        configuration.setMaxAge(3600L); // 1 saat
         
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);
