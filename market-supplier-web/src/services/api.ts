@@ -91,9 +91,12 @@ class ApiService {
   async login(credentials: LoginRequest): Promise<AuthResponse> {
     const response: AxiosResponse<any> = await this.api.post('/auth/login', credentials);
     
-    // Store token if present
+    // Store token and user if present
     if (response.data.token) {
       localStorage.setItem('token', response.data.token);
+    }
+    if (response.data.user) {
+      localStorage.setItem('user', JSON.stringify(response.data.user));
     }
     
     return response.data;
