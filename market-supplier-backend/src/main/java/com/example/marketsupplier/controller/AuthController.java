@@ -11,6 +11,9 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
+import jakarta.servlet.http.HttpServletResponse;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -47,18 +50,24 @@ public class AuthController {
             User user = userPrincipal.getUser();
             System.out.println("[AuthController] User found: " + user.getEmail() + " - Role: " + user.getRole());
 
-            // Create response
-            Map<String, Object> response = new HashMap<>();
-            response.put("user", Map.of(
-                    "id", user.getId(),
-                    "email", user.getEmail(),
-                    "name", user.getName(),
-                    "role", user.getRole().name(),
-                    "createdAt", user.getCreatedAt().toString()
-            ));
-            response.put("message", "Giriş başarılı");
+                // Create response
+                Map<String, Object> response = new HashMap<>();
+                response.put("user", Map.of(
+                        "id", user.getId(),
+                        "email", user.getEmail(),
+                        "name", user.getName(),
+                        "role", user.getRole().name(),
+                        "createdAt", user.getCreatedAt().toString()
+                ));
+                response.put("message", "Giriş başarılı");
+                
+                // Session cookie için response header ekle
+                HttpServletResponse httpResponse = ((ServletRequestAttributes) RequestContextHolder.currentRequestAttributes()).getResponse();
+                if (httpResponse != null) {
+                    httpResponse.setHeader("Set-Cookie", "JSESSIONID=" + SecurityContextHolder.getContext().getAuthentication().getName() + "; Path=/; HttpOnly; SameSite=Lax");
+                }
 
-            return ResponseEntity.ok(response);
+                return ResponseEntity.ok(response);
 
         } catch (Exception e) {
             System.out.println("[AuthController] Authentication failed: " + e.getMessage());
