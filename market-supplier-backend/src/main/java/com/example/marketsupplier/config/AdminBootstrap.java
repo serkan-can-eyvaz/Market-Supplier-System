@@ -52,6 +52,37 @@ public class AdminBootstrap implements CommandLineRunner {
             // Admin already exists, no need to update password
             System.out.println("[AdminBootstrap] Admin already exists: " + adminEmail);
         }
+        
+        // Create test users for JWT testing
+        createTestUsers();
+    }
+    
+    private void createTestUsers() {
+        System.out.println("[AdminBootstrap] Creating test users for JWT...");
+        
+        // Test Admin
+        createTestUserIfNotExists("Test Admin", "admin@test.com", "admin123", UserRole.ADMIN);
+        
+        // Test Supplier
+        createTestUserIfNotExists("Test Supplier", "supplier@test.com", "supplier123", UserRole.SUPPLIER);
+        
+        // Test Market Owner
+        createTestUserIfNotExists("Test Market Owner", "market@test.com", "market123", UserRole.MARKET);
+        
+        System.out.println("[AdminBootstrap] Test users creation completed.");
+    }
+    
+    private void createTestUserIfNotExists(String name, String email, String password, UserRole role) {
+        try {
+            if (!userRepository.findByEmail(email).isPresent()) {
+                userService.createUser(name, email, password, role);
+                System.out.println("[AdminBootstrap] Test user created: " + email + " (" + role + ")");
+            } else {
+                System.out.println("[AdminBootstrap] Test user already exists: " + email);
+            }
+        } catch (Exception e) {
+            System.err.println("[AdminBootstrap] Failed to create test user " + email + ": " + e.getMessage());
+        }
     }
 }
 
