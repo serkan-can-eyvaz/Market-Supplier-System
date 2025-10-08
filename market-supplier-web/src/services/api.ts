@@ -32,8 +32,8 @@ const getApiBaseUrl = () => {
   const hostname = window.location.hostname;
   
   if (hostname === 'localhost' || hostname === '127.0.0.1') {
-    // Development ortamı - local backend kullan (CORS düzeltmesi için)
-    return 'http://localhost:8080/api';
+    // Development ortamı - production backend kullan (CORS düzeltmesi için)
+    return 'https://tedarikasistani.com/api';
   }
   
   // Production ortamı

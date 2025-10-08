@@ -42,7 +42,8 @@ public class AuthController {
             SecurityContextHolder.getContext().setAuthentication(authentication);
 
             // Get user details
-            User user = (User) authentication.getPrincipal();
+            CustomUserDetailsService.CustomUserPrincipal userPrincipal = (CustomUserDetailsService.CustomUserPrincipal) authentication.getPrincipal();
+            User user = userPrincipal.getUser();
             System.out.println("[AuthController] User found: " + user.getEmail() + " - Role: " + user.getRole());
 
             // Create response
@@ -70,8 +71,12 @@ public class AuthController {
     @PostMapping("/register")
     public ResponseEntity<Map<String, Object>> register(@RequestBody RegisterRequest request) {
         try {
+            System.out.println("[AuthController] Register attempt for: " + request.getEmail());
+            System.out.println("[AuthController] Register password length: " + (request.getPassword() != null ? request.getPassword().length() : "null"));
+            
             // Check if user already exists
             if (userService.findByEmail(request.getEmail()).isPresent()) {
+                System.out.println("[AuthController] User already exists: " + request.getEmail());
                 return ResponseEntity.badRequest()
                         .body(Map.of("error", "Bu email adresi zaten kullanımda"));
             }
@@ -83,6 +88,9 @@ public class AuthController {
                     request.getPassword(),
                     request.getRole()
             );
+
+            System.out.println("[AuthController] User created successfully: " + user.getEmail());
+            System.out.println("[AuthController] User password hash: " + user.getPassword());
 
             // Create response
             Map<String, Object> response = new HashMap<>();
@@ -98,6 +106,8 @@ public class AuthController {
             return ResponseEntity.ok(response);
 
         } catch (Exception e) {
+            System.out.println("[AuthController] Register failed: " + e.getMessage());
+            e.printStackTrace();
             return ResponseEntity.badRequest()
                     .body(Map.of("error", "Kayıt sırasında hata: " + e.getMessage()));
         }
@@ -106,7 +116,8 @@ public class AuthController {
     @GetMapping("/me")
     public ResponseEntity<Map<String, Object>> getCurrentUser(Authentication authentication) {
         try {
-            User user = (User) authentication.getPrincipal();
+            CustomUserDetailsService.CustomUserPrincipal userPrincipal = (CustomUserDetailsService.CustomUserPrincipal) authentication.getPrincipal();
+            User user = userPrincipal.getUser();
             
             Map<String, Object> response = new HashMap<>();
             response.put("user", Map.of(
