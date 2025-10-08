@@ -159,7 +159,7 @@ public class OrderPdfService {
         html.append("</thead>");
         html.append("<tbody>");
         
-        for (OrderItem item : order.getItems()) {
+            for (OrderItem item : order.getItems()) {
             html.append("<tr>");
             html.append("<td>").append(item.getProductName()).append("</td>");
             html.append("<td>").append(item.getUnit()).append("</td>");

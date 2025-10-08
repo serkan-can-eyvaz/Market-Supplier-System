@@ -224,6 +224,18 @@ const AppRoutes: React.FC = () => {
         } 
       />
 
+      {/* General Dashboard */}
+      <Route 
+        path="/dashboard" 
+        element={
+          <ProtectedRoute>
+            <Layout>
+              <DashboardPage />
+            </Layout>
+          </ProtectedRoute>
+        } 
+      />
+
       {/* Common Routes */}
       <Route 
         path="/orders" 

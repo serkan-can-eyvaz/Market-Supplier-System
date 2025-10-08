@@ -4,7 +4,7 @@ import apiService from '../services/api';
 
 interface AuthContextType {
   user: User | null;
-  login: (credentials: LoginRequest) => Promise<void>;
+  login: (credentials: LoginRequest) => Promise<AuthResponse>;
   register: (userData: RegisterRequest) => Promise<void>;
   logout: () => void;
   loading: boolean;
@@ -35,15 +35,22 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   useEffect(() => {
     const initAuth = async () => {
       try {
-        // Her zaman backend'den session'ı kontrol et
-        const currentUser = await apiService.getCurrentUser();
-        setUser(currentUser);
-        localStorage.setItem('user', JSON.stringify(currentUser));
+        // Önce localStorage'dan kontrol et
+        const storedUser = localStorage.getItem('user');
+        if (storedUser) {
+          const user = JSON.parse(storedUser);
+          setUser(user);
+          setLoading(false);
+          return; // LocalStorage'da user varsa backend'e gitme
+        }
+        
+        // LocalStorage'da user yoksa direkt loading'i false yap
+        setUser(null);
+        setLoading(false);
       } catch (error) {
-        // Session yok veya geçersiz, storage'ı temizle
+        // Hata durumunda da loading'i false yap
         localStorage.removeItem('user');
         setUser(null);
-      } finally {
         setLoading(false);
       }
     };
@@ -53,13 +60,19 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const login = async (credentials: LoginRequest) => {
     try {
-      await apiService.login(credentials);
+      console.log('AuthContext: Login başlıyor...', credentials);
+      const response = await apiService.login(credentials);
+      console.log('AuthContext: Login response:', response);
       
-      // Login başarılı, session'ı kontrol et ve user'ı set et
-      const currentUser = await apiService.getCurrentUser();
-      setUser(currentUser);
-      localStorage.setItem('user', JSON.stringify(currentUser));
+      // Login başarılı, user'ı set et
+      setUser(response.user);
+      localStorage.setItem('user', JSON.stringify(response.user));
+      console.log('AuthContext: User set edildi:', response.user);
+      
+      // Response'u döndür ki LoginPage'de role kontrolü yapılabilsin
+      return response;
     } catch (error) {
+      console.error('AuthContext: Login hatası:', error);
       throw error;
     }
   };

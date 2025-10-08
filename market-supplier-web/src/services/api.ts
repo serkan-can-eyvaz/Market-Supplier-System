@@ -53,6 +53,7 @@ class ApiService {
         'Content-Type': 'application/json',
       },
       withCredentials: true, // Session cookie'leri için gerekli
+      timeout: 10000, // 10 saniye timeout
     });
 
     // Request interceptor for session-based authentication
@@ -83,7 +84,9 @@ class ApiService {
 
   // Auth API
   async login(credentials: LoginRequest): Promise<AuthResponse> {
+    console.log('API Service: Login isteği gönderiliyor...', credentials);
     const response: AxiosResponse<AuthResponse> = await this.api.post('/auth/login', credentials);
+    console.log('API Service: Login response:', response.data);
     return response.data;
   }
 
