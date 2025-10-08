@@ -68,25 +68,26 @@ class ApiService {
       }
     );
 
-    // Response interceptor to handle errors
-    this.api.interceptors.response.use(
-      (response) => response,
-      async (error) => {
-        // Handle authentication errors
-        if (error.response?.status === 401 || error.response?.status === 403) {
-          localStorage.removeItem('user');
-          window.location.href = '/login';
-        }
-        return Promise.reject(error);
-      }
-    );
+        // Response interceptor to handle errors
+        this.api.interceptors.response.use(
+          (response) => response,
+          async (error) => {
+            // Handle authentication errors
+            if (error.response?.status === 401 || error.response?.status === 403) {
+              localStorage.removeItem('user');
+              // Sadece login sayfasında değilsek login'e yönlendir
+              if (window.location.pathname !== '/login') {
+                window.location.href = '/login';
+              }
+            }
+            return Promise.reject(error);
+          }
+        );
   }
 
   // Auth API
   async login(credentials: LoginRequest): Promise<AuthResponse> {
-    console.log('API Service: Login isteği gönderiliyor...', credentials);
     const response: AxiosResponse<AuthResponse> = await this.api.post('/auth/login', credentials);
-    console.log('API Service: Login response:', response.data);
     return response.data;
   }
 
@@ -96,6 +97,14 @@ class ApiService {
   }
 
   async getCurrentUser(): Promise<User> {
+    // Session-based authentication için basit kontrol
+    // Eğer localStorage'da user varsa, onu döndür
+    const storedUser = localStorage.getItem('user');
+    if (storedUser) {
+      return JSON.parse(storedUser);
+    }
+    
+    // Yoksa backend'den kontrol et
     const response: AxiosResponse<any> = await this.api.get('/auth/me');
     return {
       id: response.data.id,

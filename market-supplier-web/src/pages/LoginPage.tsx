@@ -63,29 +63,21 @@ const LoginPage: React.FC = () => {
     setLoading(true);
 
     try {
-      console.log('Login başlıyor...', formData);
       const response = await login(formData);
-      console.log('Login başarılı:', response);
       
       // Role'e göre yönlendirme yap
       const userRole = response.user?.role;
-      console.log('User role:', userRole);
       
       if (userRole === 'ADMIN') {
-        console.log('Admin dashboard\'a yönlendiriliyor...');
-        navigate('/admin-dashboard');
+        window.location.href = '/admin-dashboard';
       } else if (userRole === 'SUPPLIER') {
-        console.log('Supplier dashboard\'a yönlendiriliyor...');
-        navigate('/supplier-dashboard');
+        window.location.href = '/supplier-dashboard';
       } else if (userRole === 'MARKET') {
-        console.log('Market dashboard\'a yönlendiriliyor...');
-        navigate('/market-dashboard');
+        window.location.href = '/market-dashboard';
       } else {
-        console.log('Genel dashboard\'a yönlendiriliyor...');
-        navigate('/dashboard');
+        window.location.href = '/dashboard';
       }
     } catch (err: any) {
-      console.error('Login hatası:', err);
       setError(err.response?.data?.message || 'Giriş yapılırken bir hata oluştu');
     } finally {
       setLoading(false);

@@ -144,14 +144,23 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode; requiredRole?: strin
 
 // Public Route Component (redirect if authenticated)
 const PublicRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { isAuthenticated, loading } = useAuth();
+  const { isAuthenticated, loading, user } = useAuth();
 
   if (loading) {
     return <LoadingSpinner />;
   }
 
-  if (isAuthenticated) {
-    return <Navigate to="/dashboard" replace />;
+  if (isAuthenticated && user) {
+    // Role'e göre yönlendirme yap
+    if (user.role === 'ADMIN') {
+      return <Navigate to="/admin-dashboard" replace />;
+    } else if (user.role === 'SUPPLIER') {
+      return <Navigate to="/supplier-dashboard" replace />;
+    } else if (user.role === 'MARKET') {
+      return <Navigate to="/market-dashboard" replace />;
+    } else {
+      return <Navigate to="/dashboard" replace />;
+    }
   }
 
   return <>{children}</>;

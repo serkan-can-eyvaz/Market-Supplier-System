@@ -33,46 +33,33 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const initAuth = async () => {
+    // Sadece localStorage'dan kontrol et, backend'e gitme
+    const storedUser = localStorage.getItem('user');
+    if (storedUser) {
       try {
-        // Önce localStorage'dan kontrol et
-        const storedUser = localStorage.getItem('user');
-        if (storedUser) {
-          const user = JSON.parse(storedUser);
-          setUser(user);
-          setLoading(false);
-          return; // LocalStorage'da user varsa backend'e gitme
-        }
-        
-        // LocalStorage'da user yoksa direkt loading'i false yap
-        setUser(null);
-        setLoading(false);
+        const user = JSON.parse(storedUser);
+        setUser(user);
       } catch (error) {
-        // Hata durumunda da loading'i false yap
         localStorage.removeItem('user');
         setUser(null);
-        setLoading(false);
       }
-    };
-
-    initAuth();
+    } else {
+      setUser(null);
+    }
+    setLoading(false);
   }, []);
 
   const login = async (credentials: LoginRequest) => {
     try {
-      console.log('AuthContext: Login başlıyor...', credentials);
       const response = await apiService.login(credentials);
-      console.log('AuthContext: Login response:', response);
       
       // Login başarılı, user'ı set et
       setUser(response.user);
       localStorage.setItem('user', JSON.stringify(response.user));
-      console.log('AuthContext: User set edildi:', response.user);
       
       // Response'u döndür ki LoginPage'de role kontrolü yapılabilsin
       return response;
     } catch (error) {
-      console.error('AuthContext: Login hatası:', error);
       throw error;
     }
   };
