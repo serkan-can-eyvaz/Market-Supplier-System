@@ -49,11 +49,10 @@ class ApiService {
       headers: {
         'Content-Type': 'application/json',
       },
-      withCredentials: true, // Session cookie'leri için gerekli
       timeout: 10000, // 10 saniye timeout
     });
 
-    // Request interceptor for session-based authentication
+    // Request interceptor for JWT authentication
     this.api.interceptors.request.use(
       (config) => {
         // JWT Token authentication
@@ -106,28 +105,21 @@ class ApiService {
   }
 
   async getCurrentUser(): Promise<User> {
-    // Session-based authentication için basit kontrol
-    // Eğer localStorage'da user varsa, onu döndür
+    // JWT authentication - localStorage'dan user bilgisini al
     const storedUser = localStorage.getItem('user');
     if (storedUser) {
       return JSON.parse(storedUser);
     }
     
-    // Yoksa backend'den kontrol et
-    const response: AxiosResponse<any> = await this.api.get('/auth/me');
-    // Backend response format: { user: { id, name, email, role, createdAt } }
-    const userData = response.data.user || response.data;
-    return {
-      id: userData.id,
-      name: userData.name,
-      email: userData.email,
-      role: userData.role as UserRole,
-      createdAt: userData.createdAt
-    };
+    // Eğer localStorage'da user yoksa, token'dan bilgi alınabilir
+    // Şimdilik boş user döndür
+    throw new Error('User not found in localStorage');
   }
 
   async logout(): Promise<void> {
-    await this.api.post('/auth/logout');
+    // JWT authentication - sadece localStorage'ı temizle
+    localStorage.removeItem('user');
+    localStorage.removeItem('token');
   }
 
 

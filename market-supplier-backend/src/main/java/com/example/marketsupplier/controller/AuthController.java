@@ -9,12 +9,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.context.request.RequestContextHolder;
-import org.springframework.web.context.request.ServletRequestAttributes;
-import jakarta.servlet.http.HttpServletResponse;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -125,43 +120,7 @@ public class AuthController {
         }
     }
 
-    @GetMapping("/me")
-    public ResponseEntity<Map<String, Object>> getCurrentUser(Authentication authentication) {
-        try {
-            CustomUserDetailsService.CustomUserPrincipal userPrincipal = (CustomUserDetailsService.CustomUserPrincipal) authentication.getPrincipal();
-            User user = userPrincipal.getUser();
-            
-            Map<String, Object> response = new HashMap<>();
-            response.put("user", Map.of(
-                    "id", user.getId(),
-                    "email", user.getEmail(),
-                    "name", user.getName(),
-                    "role", user.getRole().name(),
-                    "createdAt", user.getCreatedAt().toString()
-            ));
 
-            return ResponseEntity.ok(response);
-
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(Map.of("error", "Kullanıcı bilgileri alınamadı"));
-        }
-    }
-
-    @PostMapping("/logout")
-    public ResponseEntity<Map<String, String>> logout() {
-        try {
-            // Clear the security context
-            SecurityContextHolder.clearContext();
-            
-            Map<String, String> response = new HashMap<>();
-            response.put("message", "Çıkış başarılı");
-            
-            return ResponseEntity.ok(response);
-        } catch (Exception e) {
-            return ResponseEntity.ok(Map.of("message", "Çıkış yapıldı"));
-        }
-    }
 
     // DTO sınıfları
     public static class LoginRequest {
