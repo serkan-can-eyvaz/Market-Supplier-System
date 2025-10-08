@@ -34,23 +34,18 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   useEffect(() => {
     const initAuth = async () => {
-      const storedUser = localStorage.getItem('user');
-
-      if (storedUser) {
-        try {
-          setUser(JSON.parse(storedUser));
-          
-          // Verify session with backend
-          const currentUser = await apiService.getCurrentUser();
-          setUser(currentUser);
-          localStorage.setItem('user', JSON.stringify(currentUser));
-        } catch (error) {
-          // Session is invalid, clear storage
-          localStorage.removeItem('user');
-          setUser(null);
-        }
+      try {
+        // Her zaman backend'den session'ı kontrol et
+        const currentUser = await apiService.getCurrentUser();
+        setUser(currentUser);
+        localStorage.setItem('user', JSON.stringify(currentUser));
+      } catch (error) {
+        // Session yok veya geçersiz, storage'ı temizle
+        localStorage.removeItem('user');
+        setUser(null);
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     };
 
     initAuth();
@@ -58,10 +53,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const login = async (credentials: LoginRequest) => {
     try {
-      const response: AuthResponse = await apiService.login(credentials);
+      await apiService.login(credentials);
       
-      setUser(response.user);
-      localStorage.setItem('user', JSON.stringify(response.user));
+      // Login başarılı, session'ı kontrol et ve user'ı set et
+      const currentUser = await apiService.getCurrentUser();
+      setUser(currentUser);
+      localStorage.setItem('user', JSON.stringify(currentUser));
     } catch (error) {
       throw error;
     }

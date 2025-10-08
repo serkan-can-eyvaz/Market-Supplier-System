@@ -103,6 +103,10 @@ class ApiService {
     };
   }
 
+  async logout(): Promise<void> {
+    await this.api.post('/auth/logout');
+  }
+
 
   async changePassword(currentPassword: string, newPassword: string): Promise<void> {
     await this.api.post('/auth/change-password', { currentPassword, newPassword });

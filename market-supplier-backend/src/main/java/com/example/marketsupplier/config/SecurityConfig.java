@@ -63,15 +63,22 @@ public class SecurityConfig {
                 // All other requests need authentication
                 .anyRequest().authenticated()
             )
-            .formLogin(form -> form
-                .loginPage("/login")
-                .permitAll()
-            )
-            .logout(logout -> logout
-                .logoutUrl("/logout")
-                .logoutSuccessUrl("/login?logout")
-                .permitAll()
-            )
+                .formLogin(form -> form
+                    .loginPage("/login")
+                    .permitAll()
+                )
+                .logout(logout -> logout
+                    .logoutUrl("/logout")
+                    .logoutSuccessUrl("/login?logout")
+                    .invalidateHttpSession(true)
+                    .deleteCookies("JSESSIONID")
+                    .permitAll()
+                )
+                .sessionManagement(session -> session
+                    .sessionCreationPolicy(org.springframework.security.config.http.SessionCreationPolicy.IF_REQUIRED)
+                    .maximumSessions(1)
+                    .maxSessionsPreventsLogin(false)
+                )
             .authenticationProvider(authenticationProvider());
         
         return http.build();
