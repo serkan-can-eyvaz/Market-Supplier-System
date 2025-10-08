@@ -38,7 +38,6 @@ public class SecurityConfig {
                 .sessionCreationPolicy(SessionCreationPolicy.ALWAYS)
                 .maximumSessions(1)
                 .maxSessionsPreventsLogin(false)
-                .sessionFixation().migrateSession()
             )
             .authorizeHttpRequests(authz -> authz
                 // Public endpoints
