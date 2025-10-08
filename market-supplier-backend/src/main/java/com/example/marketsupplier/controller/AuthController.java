@@ -28,6 +28,7 @@ public class AuthController {
     public ResponseEntity<Map<String, Object>> login(@RequestBody LoginRequest request) {
         try {
             System.out.println("[AuthController] Login attempt for: " + request.getEmail());
+            System.out.println("[AuthController] Password length: " + (request.getPassword() != null ? request.getPassword().length() : "null"));
             
             // Authenticate user
             Authentication authentication = authenticationManager.authenticate(
@@ -35,12 +36,14 @@ public class AuthController {
             );
 
             System.out.println("[AuthController] Authentication successful");
+            System.out.println("[AuthController] Authentication details: " + authentication.getDetails());
 
             // Set authentication in security context
             SecurityContextHolder.getContext().setAuthentication(authentication);
 
             // Get user details
             User user = (User) authentication.getPrincipal();
+            System.out.println("[AuthController] User found: " + user.getEmail() + " - Role: " + user.getRole());
 
             // Create response
             Map<String, Object> response = new HashMap<>();
@@ -57,6 +60,7 @@ public class AuthController {
 
         } catch (Exception e) {
             System.out.println("[AuthController] Authentication failed: " + e.getMessage());
+            System.out.println("[AuthController] Exception type: " + e.getClass().getSimpleName());
             e.printStackTrace();
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                     .body(Map.of("error", "Geçersiz email veya şifre"));
