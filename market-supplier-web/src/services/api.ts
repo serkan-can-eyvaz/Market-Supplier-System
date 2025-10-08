@@ -56,8 +56,11 @@ class ApiService {
     // Request interceptor for session-based authentication
     this.api.interceptors.request.use(
       (config) => {
-        // Session-based authentication - no token needed
-        // Spring Security will handle authentication via session cookies
+        // JWT Token authentication
+        const token = localStorage.getItem('token');
+        if (token) {
+          config.headers.Authorization = `Bearer ${token}`;
+        }
         return config;
       },
       (error) => {
@@ -69,7 +72,16 @@ class ApiService {
         this.api.interceptors.response.use(
           (response) => response,
           async (error) => {
-            // Geçici olarak tüm 401/403 hatalarında logout yapmayalım
+            // Handle JWT authentication errors
+            if (error.response?.status === 401 || error.response?.status === 403) {
+              // Token expired or invalid - clear storage and redirect to login
+              localStorage.removeItem('user');
+              localStorage.removeItem('token');
+              if (!window.location.pathname.includes('/login')) {
+                window.location.href = '/login';
+              }
+            }
+            
             console.log('API Error:', error.response?.status, error.response?.data);
             return Promise.reject(error);
           }
@@ -78,7 +90,13 @@ class ApiService {
 
   // Auth API
   async login(credentials: LoginRequest): Promise<AuthResponse> {
-    const response: AxiosResponse<AuthResponse> = await this.api.post('/auth/login', credentials);
+    const response: AxiosResponse<any> = await this.api.post('/auth/login', credentials);
+    
+    // Store token if present
+    if (response.data.token) {
+      localStorage.setItem('token', response.data.token);
+    }
+    
     return response.data;
   }
 
