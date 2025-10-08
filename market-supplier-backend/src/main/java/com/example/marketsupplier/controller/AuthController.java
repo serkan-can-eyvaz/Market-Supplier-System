@@ -27,10 +27,14 @@ public class AuthController {
     @PostMapping("/login")
     public ResponseEntity<Map<String, Object>> login(@RequestBody LoginRequest request) {
         try {
+            System.out.println("[AuthController] Login attempt for: " + request.getEmail());
+            
             // Authenticate user
             Authentication authentication = authenticationManager.authenticate(
                     new UsernamePasswordAuthenticationToken(request.getEmail(), request.getPassword())
             );
+
+            System.out.println("[AuthController] Authentication successful");
 
             // Set authentication in security context
             SecurityContextHolder.getContext().setAuthentication(authentication);
@@ -52,6 +56,8 @@ public class AuthController {
             return ResponseEntity.ok(response);
 
         } catch (Exception e) {
+            System.out.println("[AuthController] Authentication failed: " + e.getMessage());
+            e.printStackTrace();
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                     .body(Map.of("error", "Geçersiz email veya şifre"));
         }
@@ -112,6 +118,21 @@ public class AuthController {
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                     .body(Map.of("error", "Kullanıcı bilgileri alınamadı"));
+        }
+    }
+
+    @PostMapping("/logout")
+    public ResponseEntity<Map<String, String>> logout() {
+        try {
+            // Clear the security context
+            SecurityContextHolder.clearContext();
+            
+            Map<String, String> response = new HashMap<>();
+            response.put("message", "Çıkış başarılı");
+            
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            return ResponseEntity.ok(Map.of("message", "Çıkış yapıldı"));
         }
     }
 
