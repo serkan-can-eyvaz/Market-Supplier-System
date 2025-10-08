@@ -6,13 +6,9 @@ import {
   CardContent,
   Button,
   Paper,
-  Avatar,
   Fade,
   Slide,
   Zoom,
-  Chip,
-  Stack,
-  Divider,
   IconButton,
   Tooltip,
 } from '@mui/material';

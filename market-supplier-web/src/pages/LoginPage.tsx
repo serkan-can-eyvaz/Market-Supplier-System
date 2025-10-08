@@ -27,7 +27,6 @@ import {
   AdminPanelSettings,
   Login as LoginIcon,
   Security,
-  Speed,
   SmartToy,
 } from '@mui/icons-material';
 import { useNavigate, Link as RouterLink } from 'react-router-dom';

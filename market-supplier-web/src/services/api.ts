@@ -24,16 +24,31 @@ import {
   ProductCreateRequest,
   ProductUpdateRequest,
   CartItem,
-  CartResponse,
-  CartItemRequest
+  CartResponse
 } from '../types';
+
+// API base URL - environment'a göre ayarla
+const getApiBaseUrl = () => {
+  const hostname = window.location.hostname;
+  
+  if (hostname === 'localhost' || hostname === '127.0.0.1') {
+    // Development ortamı - production backend kullan (CORS sorunu için)
+    return 'https://tedarikasistani.com/api';
+    
+    // Alternatif: Local backend kullanmak istiyorsanız:
+    // return 'http://localhost:8480/api';
+  }
+  
+  // Production ortamı
+  return 'https://tedarikasistani.com/api';
+};
 
 class ApiService {
   private api: AxiosInstance;
 
   constructor() {
     this.api = axios.create({
-      baseURL: process.env.REACT_APP_API_URL || 'http://localhost:8480/api',
+      baseURL: process.env.REACT_APP_API_URL || getApiBaseUrl(),
       headers: {
         'Content-Type': 'application/json',
       },

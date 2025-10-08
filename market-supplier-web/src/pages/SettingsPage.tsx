@@ -20,28 +20,18 @@ import {
   Chip,
   Stack,
   InputAdornment,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
   List,
   ListItem,
   ListItemButton,
   ListItemIcon,
   ListItemText,
-  ListItemSecondaryAction,
 } from '@mui/material';
 import {
   Settings as SettingsIcon,
   Person as PersonIcon,
   Security as SecurityIcon,
   Notifications as NotificationsIcon,
-  Palette as PaletteIcon,
-  Language as LanguageIcon,
-  Storage as StorageIcon,
-  Refresh as RefreshIcon,
   Save as SaveIcon,
-  Edit as EditIcon,
   Visibility as VisibilityIcon,
   VisibilityOff as VisibilityOffIcon,
   Email as EmailIcon,
@@ -50,9 +40,6 @@ import {
   AdminPanelSettings as AdminIcon,
   Storefront as StorefrontIcon,
   BusinessCenter as BusinessCenterIcon,
-  CheckCircle as CheckCircleIcon,
-  Warning as WarningIcon,
-  Info as InfoIcon,
 } from '@mui/icons-material';
 import { useAuth } from '../contexts/AuthContext';
 import apiService from '../services/api';

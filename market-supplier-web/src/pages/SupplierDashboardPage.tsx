@@ -2,9 +2,6 @@ import React, { useEffect, useState } from 'react';
 import {
   Box,
   Typography,
-  Card,
-  CardContent,
-  CardHeader,
   Button,
   Stack,
   List,
@@ -12,16 +9,7 @@ import {
   ListItemText,
   ListItemIcon,
   ListItemSecondaryAction,
-  Divider,
   Paper,
-  Avatar,
-  Chip,
-  IconButton,
-  Fade,
-  Slide,
-  Alert,
-  Badge,
-  Tooltip,
   LinearProgress,
 } from '@mui/material';
 import {
@@ -29,24 +17,13 @@ import {
   LocalShipping as DeliveryIcon,
   ShoppingCart as OrderIcon,
   Add as AddIcon,
-  Visibility as ViewIcon,
-  TrendingUp as TrendingUpIcon,
   CheckCircle as CheckCircleIcon,
   Pending as PendingIcon,
-  Schedule as ScheduleIcon,
-  Business as BusinessIcon,
-  Phone as PhoneIcon,
-  LocationOn as LocationIcon,
-  AttachMoney as MoneyIcon,
-  Inventory as InventoryIcon,
-  Refresh as RefreshIcon,
-  ArrowForward as ArrowForwardIcon,
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import apiService from '../services/api';
-import { Market, Delivery, Order, OrderStatus, DeliveryStatus } from '../types';
-import { LineChart } from '@mui/x-charts';
+import { Market, Delivery, Order, DeliveryStatus } from '../types';
 import { LogoIcon } from '../components/ui/Logo';
 
 // Grid v7 tip farklarını aşmak için Box ile iki sütunlu düzen kullanıyoruz
@@ -56,16 +33,13 @@ const SupplierDashboardPage: React.FC = () => {
   const { user } = useAuth();
   const [myMarkets, setMyMarkets] = useState<Market[]>([]);
   const [recentDeliveries, setRecentDeliveries] = useState<Delivery[]>([]);
-  const [pendingOrders, setPendingOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string>('');
   const [stats, setStats] = useState({ totalMarkets: 0, totalDeliveries: 0, pendingOrders: 0, completedDeliveries: 0 });
 
   useEffect(() => {
     const loadData = async () => {
       try {
         setLoading(true);
-        setError('');
         
         // Markets
         try { 
@@ -96,13 +70,11 @@ const SupplierDashboardPage: React.FC = () => {
         try { 
           const response = await apiService.getPendingOrdersPaged(0, 5);
           const pending = response.content || [];
-          setPendingOrders(pending);
           setStats(prev => ({ ...prev, pendingOrders: response.totalElements || pending.length }));
         } catch (err) {
           console.error('Orders yüklenemedi:', err);
         }
       } catch (err) {
-        setError('Veriler yüklenirken hata oluştu');
         console.error('Dashboard yükleme hatası:', err);
       } finally {
         setLoading(false);
@@ -112,35 +84,6 @@ const SupplierDashboardPage: React.FC = () => {
     loadData();
   }, []);
 
-  const handleRefresh = () => {
-    window.location.reload();
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case DeliveryStatus.DELIVERED:
-        return 'success';
-      case DeliveryStatus.IN_PROGRESS:
-        return 'warning';
-      case 'PENDING':
-        return 'info';
-      default:
-        return 'default';
-    }
-  };
-
-  const getStatusText = (status: string) => {
-    switch (status) {
-      case DeliveryStatus.DELIVERED:
-        return 'Teslim Edildi';
-      case DeliveryStatus.IN_PROGRESS:
-        return 'Devam Ediyor';
-      case 'PENDING':
-        return 'Bekliyor';
-      default:
-        return status;
-    }
-  };
 
   if (loading) {
     return (

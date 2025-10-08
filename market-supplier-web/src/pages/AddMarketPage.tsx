@@ -36,7 +36,6 @@ import apiService from '../services/api';
 
 const AddMarketPage: React.FC = () => {
   const navigate = useNavigate();
-  const { user } = useAuth();
   const [name, setName] = useState<string>('');
   const [address, setAddress] = useState<string>('');
   const [phone, setPhone] = useState<string>('');

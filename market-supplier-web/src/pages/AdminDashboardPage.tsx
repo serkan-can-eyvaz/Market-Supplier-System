@@ -6,7 +6,6 @@ import {
   CardContent, 
   Alert, 
   Button, 
-  Stack, 
   Table, 
   TableBody, 
   TableCell, 
@@ -18,9 +17,6 @@ import {
   Paper,
   IconButton,
   Tooltip,
-  LinearProgress,
-  Divider,
-  Avatar,
   Badge,
   Fade,
   Zoom,
@@ -34,33 +30,25 @@ import {
   LocalShipping as DeliveryIcon,
   TrendingUp as TrendingUpIcon,
   TrendingDown as TrendingDownIcon,
-  Assessment as AssessmentIcon,
   Refresh as RefreshIcon,
   Visibility as ViewIcon,
   CheckCircle as CheckCircleIcon,
   Pending as PendingIcon,
-  Cancel as CancelIcon,
   Schedule as ScheduleIcon,
   Dashboard as DashboardIcon,
   Analytics as AnalyticsIcon,
-  Speed as SpeedIcon,
-  AttachMoney as MoneyIcon,
   Inventory as InventoryIcon,
   Notifications as NotificationsIcon,
-  Settings as SettingsIcon,
   ArrowForward as ArrowForwardIcon,
-  MoreVert as MoreVertIcon,
   Warning as WarningIcon,
   Info as InfoIcon,
   Error as ErrorIcon,
   CheckCircleOutline as CheckCircleOutlineIcon,
   Close as CloseIcon,
-  ExpandMore as ExpandMoreIcon
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import apiService from '../services/api';
 import { UserStats, MarketStats, SupplierStats, OrderStats, DeliveryStats, Order, Delivery, PaginatedResponse, OrderStatus, DeliveryStatus } from '../types';
-import { LineChart } from '@mui/x-charts';
 
 // Professional Logo Component
 const LogoIcon = ({ size = 48, children, bg = 'linear-gradient(135deg, #667eea, #764ba2)' }: { size?: number; children: React.ReactNode; bg?: string }) => (
@@ -174,7 +162,6 @@ const AdminDashboardPage: React.FC = () => {
   const [marketStats, setMarketStats] = useState<MarketStats | null>(null);
   const [supplierStats, setSupplierStats] = useState<SupplierStats | null>(null);
   const [orderStats, setOrderStats] = useState<OrderStats | null>(null);
-  const [deliveryStats, setDeliveryStats] = useState<DeliveryStats | null>(null);
   const [productStats, setProductStats] = useState<{ totalProducts: number } | null>(null);
   
   // Notifications state
@@ -271,7 +258,6 @@ const AdminDashboardPage: React.FC = () => {
         setMarketStats(m);
         setSupplierStats(s);
         setOrderStats(o);
-        setDeliveryStats(d);
         setProductStats(p);
         
         // Load orders and deliveries
@@ -486,7 +472,6 @@ const AdminDashboardPage: React.FC = () => {
         setMarketStats(m);
         setSupplierStats(s);
         setOrderStats(o);
-        setDeliveryStats(d);
         setProductStats(p);
         
       } catch (e) {

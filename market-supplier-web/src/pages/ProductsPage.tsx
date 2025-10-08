@@ -22,21 +22,18 @@ import {
   FormControlLabel,
   Card,
   CardContent,
-  CardHeader,
   InputAdornment,
   Pagination,
-  Avatar,
   Fade,
   Slide,
   LinearProgress,
   Stack,
-  Divider,
 } from '@mui/material';
 import { Package } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { LogoIcon } from '../components/ui/Logo';
 import apiService from '../services/api';
-import { Product, PaginatedResponse, ProductResponse, ProductCreateRequest, ProductUpdateRequest } from '../types';
+import { Product, PaginatedResponse, ProductCreateRequest, ProductUpdateRequest } from '../types';
 import {
   Add as AddIcon,
   Edit as EditIcon,
@@ -45,13 +42,12 @@ import {
   Visibility as VisibilityIcon,
   VisibilityOff as VisibilityOffIcon,
   Refresh as RefreshIcon,
-  AttachMoney as MoneyIcon,
   Category as CategoryIcon,
   Schedule as ScheduleIcon,
 } from '@mui/icons-material';
 
 const ProductsPage: React.FC = () => {
-  const { isSupplier, user, isAdmin } = useAuth();
+  const { isSupplier, isAdmin } = useAuth();
   const [products, setProducts] = useState<Product[]>([]);
   const [pagination, setPagination] = useState({
     page: 0,

@@ -23,11 +23,8 @@ import {
   TableRow,
   Paper,
   Badge,
-  Fab,
   Snackbar,
   LinearProgress,
-  Stack,
-  Divider,
 } from '@mui/material';
 import {
   Search as SearchIcon,
@@ -43,10 +40,10 @@ import {
 } from '@mui/icons-material';
 import { useAuth } from '../contexts/AuthContext';
 import apiService from '../services/api';
-import { ProductResponse, CartResponse, CartItem } from '../types';
+import { ProductResponse, CartResponse } from '../types';
 
 const MarketProductsPage: React.FC = () => {
-  const { isMarket, user } = useAuth();
+  const { isMarket } = useAuth();
   const [products, setProducts] = useState<ProductResponse[]>([]);
   const [cart, setCart] = useState<CartResponse | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
