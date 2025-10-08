@@ -49,21 +49,8 @@ public class AdminBootstrap implements CommandLineRunner {
                 e.printStackTrace();
             }
         } else {
-            // Update existing admin password to ensure it's properly hashed
-            try {
-                var existingAdmin = userRepository.findByEmail(adminEmail);
-                if (existingAdmin.isPresent()) {
-                    User admin = existingAdmin.get();
-                    // Re-encode password to ensure it's properly hashed
-                    String encodedPassword = userService.getPasswordEncoder().encode(adminPassword);
-                    admin.setPassword(encodedPassword);
-                    userRepository.save(admin);
-                    System.out.println("[AdminBootstrap] Admin password updated: " + adminEmail);
-                }
-            } catch (Exception e) {
-                System.err.println("[AdminBootstrap] Failed to update admin password: " + e.getMessage());
-                e.printStackTrace();
-            }
+            // Admin already exists, no need to update password
+            System.out.println("[AdminBootstrap] Admin already exists: " + adminEmail);
         }
     }
 }

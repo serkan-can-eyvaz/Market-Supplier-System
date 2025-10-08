@@ -69,14 +69,8 @@ class ApiService {
         this.api.interceptors.response.use(
           (response) => response,
           async (error) => {
-            // Handle authentication errors
-            if (error.response?.status === 401 || error.response?.status === 403) {
-              localStorage.removeItem('user');
-              // Sadece login sayfasında değilsek login'e yönlendir
-              if (window.location.pathname !== '/login') {
-                window.location.href = '/login';
-              }
-            }
+            // Geçici olarak tüm 401/403 hatalarında logout yapmayalım
+            console.log('API Error:', error.response?.status, error.response?.data);
             return Promise.reject(error);
           }
         );
@@ -103,12 +97,14 @@ class ApiService {
     
     // Yoksa backend'den kontrol et
     const response: AxiosResponse<any> = await this.api.get('/auth/me');
+    // Backend response format: { user: { id, name, email, role, createdAt } }
+    const userData = response.data.user || response.data;
     return {
-      id: response.data.id,
-      name: response.data.name,
-      email: response.data.email,
-      role: response.data.role as UserRole,
-      createdAt: response.data.createdAt
+      id: userData.id,
+      name: userData.name,
+      email: userData.email,
+      role: userData.role as UserRole,
+      createdAt: userData.createdAt
     };
   }
 
