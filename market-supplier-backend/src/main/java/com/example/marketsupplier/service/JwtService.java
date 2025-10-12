@@ -33,18 +33,38 @@ public class JwtService {
     }
 
     private String createToken(Map<String, Object> claims, String subject) {
+        Date issuedAt = new Date(System.currentTimeMillis());
+        Date expirationDate = new Date(System.currentTimeMillis() + expiration);
+        
+        System.out.println("[JwtService] Creating token:");
+        System.out.println("[JwtService] Subject: " + subject);
+        System.out.println("[JwtService] Issued at: " + issuedAt);
+        System.out.println("[JwtService] Expires at: " + expirationDate);
+        System.out.println("[JwtService] Expiration duration: " + expiration + " ms (" + (expiration / 1000 / 60 / 60) + " hours)");
+        
         return Jwts.builder()
                 .setClaims(claims)
                 .setSubject(subject)
-                .setIssuedAt(new Date(System.currentTimeMillis()))
-                .setExpiration(new Date(System.currentTimeMillis() + expiration))
+                .setIssuedAt(issuedAt)
+                .setExpiration(expirationDate)
                 .signWith(getSigningKey(), SignatureAlgorithm.HS256)
                 .compact();
     }
 
     public Boolean validateToken(String token, String email) {
-        final String username = extractUsername(token);
-        return (username.equals(email) && !isTokenExpired(token));
+        try {
+            final String username = extractUsername(token);
+            final boolean usernameMatch = username.equals(email);
+            final boolean notExpired = !isTokenExpired(token);
+            
+            System.out.println("[JwtService] Token validation - Username match: " + usernameMatch + ", Not expired: " + notExpired);
+            System.out.println("[JwtService] Token validation - Expected: " + email + ", Actual: " + username);
+            
+            return (usernameMatch && notExpired);
+        } catch (Exception e) {
+            System.out.println("[JwtService] Token validation failed with exception: " + e.getMessage());
+            return false;
+        }
     }
 
     public String extractUsername(String token) {
@@ -73,6 +93,20 @@ public class JwtService {
     }
 
     private Boolean isTokenExpired(String token) {
-        return extractExpiration(token).before(new Date());
+        try {
+            Date expiration = extractExpiration(token);
+            Date now = new Date();
+            boolean expired = expiration.before(now);
+            
+            System.out.println("[JwtService] Token expiration check:");
+            System.out.println("[JwtService] Token expires at: " + expiration);
+            System.out.println("[JwtService] Current time: " + now);
+            System.out.println("[JwtService] Is expired: " + expired);
+            
+            return expired;
+        } catch (Exception e) {
+            System.out.println("[JwtService] Error checking token expiration: " + e.getMessage());
+            return true; // If we can't check, consider it expired
+        }
     }
 }

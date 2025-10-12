@@ -21,6 +21,7 @@ import {
   Visibility,
   VisibilityOff,
   Email,
+  Phone,
   Lock,
   Business,
   Storefront,
@@ -31,26 +32,67 @@ import {
 } from '@mui/icons-material';
 import { useNavigate, Link as RouterLink } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { LoginRequest } from '../types';
+import { LoginRequest, PhoneLoginRequest } from '../types';
 
 const LoginPage: React.FC = () => {
-  const [formData, setFormData] = useState<LoginRequest>({
-    email: '',
+  const [formData, setFormData] = useState({
+    emailOrPhone: '',
     password: '',
   });
   const [error, setError] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(false);
   const [showPassword, setShowPassword] = useState<boolean>(false);
   
-  const { login } = useAuth();
+  const { login, loginWithPhone } = useAuth();
   const navigate = useNavigate();
+
+  const normalizePhone = (phone: string) => {
+    if (!phone) return "";
+    // Sadece rakamları al
+    const digits = phone.replaceAll(/[^0-9]/g, "");
+    
+    // Türkiye telefon numarası formatını kontrol et
+    if (digits.startsWith("905")) {
+      // +905348865278 -> 5348865278
+      return digits.substring(3);
+    } else if (digits.startsWith("05")) {
+      // 05348865278 -> 5348865278
+      return digits.substring(1);
+    } else if (digits.startsWith("534") && digits.length === 10) {
+      // 5348865278 -> 5348865278 (zaten doğru format)
+      return digits;
+    }
+    
+    return digits;
+  };
+
+  const isEmail = (value: string) => {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+  };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value,
-    }));
+    
+    if (name === 'emailOrPhone') {
+      // Eğer telefon numarası formatındaysa normalize et
+      if (!isEmail(value) && /^[0-9+\s()-]+$/.test(value)) {
+        const normalizedPhone = normalizePhone(value);
+        setFormData(prev => ({
+          ...prev,
+          [name]: normalizedPhone,
+        }));
+      } else {
+        setFormData(prev => ({
+          ...prev,
+          [name]: value,
+        }));
+      }
+    } else {
+      setFormData(prev => ({
+        ...prev,
+        [name]: value,
+      }));
+    }
   };
 
   const handleTogglePasswordVisibility = () => {
@@ -63,7 +105,22 @@ const LoginPage: React.FC = () => {
     setLoading(true);
 
     try {
-      const response = await login(formData);
+      let response;
+      
+      // Email mi telefon numarası mı kontrol et
+      if (isEmail(formData.emailOrPhone)) {
+        // Email ile giriş
+        response = await login({
+          email: formData.emailOrPhone,
+          password: formData.password
+        });
+      } else {
+        // Telefon numarası ile giriş
+        response = await loginWithPhone({
+          phone: formData.emailOrPhone,
+          password: formData.password
+        });
+      }
       
       // Role'e göre yönlendirme yap
       const userRole = response.user?.role;
@@ -78,7 +135,7 @@ const LoginPage: React.FC = () => {
         navigate('/dashboard');
       }
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Giriş yapılırken bir hata oluştu');
+      setError(err.response?.data?.error || err.response?.data?.message || 'Giriş yapılırken bir hata oluştu');
     } finally {
       setLoading(false);
     }
@@ -199,19 +256,20 @@ const LoginPage: React.FC = () => {
                     <TextField
                       fullWidth
                       required
-                      id="email"
-                      label="E-posta Adresi"
-                      name="email"
-                      type="email"
-                      autoComplete="email"
+                      id="emailOrPhone"
+                      label="E-posta Adresi veya Telefon Numarası"
+                      name="emailOrPhone"
+                      type="text"
+                      autoComplete="username"
                       autoFocus
-                      value={formData.email}
+                      value={formData.emailOrPhone}
                       onChange={handleChange}
                       sx={{ mb: 3 }}
+                      placeholder="ornek@email.com veya 05348865278"
                       InputProps={{
                         startAdornment: (
                           <InputAdornment position="start">
-                            <Email color="action" />
+                            {isEmail(formData.emailOrPhone) ? <Email color="action" /> : <Phone color="action" />}
                           </InputAdornment>
                         ),
                       }}

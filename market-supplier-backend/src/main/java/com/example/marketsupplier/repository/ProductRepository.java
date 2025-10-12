@@ -43,6 +43,14 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
     @Query("SELECT p FROM Product p WHERE p.supplier.id = :supplierId AND p.isActive = true ORDER BY p.name ASC")
     Page<Product> findBySupplierIdAndIsActiveTrueOrderByNameAsc(@Param("supplierId") Long supplierId, Pageable pageable);
 
+    // Tüm ürünleri getir (aktif + pasif) - tedarikçi için
+    @Query("SELECT p FROM Product p WHERE p.supplier.id = :supplierId ORDER BY p.name ASC")
+    Page<Product> findBySupplierIdOrderByNameAsc(@Param("supplierId") Long supplierId, Pageable pageable);
+
+    // Sadece pasif ürünleri getir - tedarikçi için
+    @Query("SELECT p FROM Product p WHERE p.supplier.id = :supplierId AND p.isActive = false ORDER BY p.name ASC")
+    Page<Product> findBySupplierIdAndIsActiveFalseOrderByNameAsc(@Param("supplierId") Long supplierId, Pageable pageable);
+
     @Query("SELECT p FROM Product p WHERE p.supplier.id IN :supplierIds AND p.isActive = true ORDER BY p.supplier.id, p.name ASC")
     List<Product> findBySupplierIdInAndIsActiveTrueOrderBySupplierIdAscNameAsc(@Param("supplierIds") Set<Long> supplierIds);
 

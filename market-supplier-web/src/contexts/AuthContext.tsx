@@ -1,10 +1,11 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { User, UserRole, AuthResponse, LoginRequest, RegisterRequest } from '../types';
+import { User, UserRole, AuthResponse, LoginRequest, PhoneLoginRequest, RegisterRequest } from '../types';
 import apiService from '../services/api';
 
 interface AuthContextType {
   user: User | null;
   login: (credentials: LoginRequest) => Promise<AuthResponse>;
+  loginWithPhone: (credentials: PhoneLoginRequest) => Promise<AuthResponse>;
   register: (userData: RegisterRequest) => Promise<void>;
   logout: () => void;
   loading: boolean;
@@ -35,15 +36,22 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   useEffect(() => {
     // Sadece localStorage'dan kontrol et, backend'e gitme
     const storedUser = localStorage.getItem('user');
-    if (storedUser) {
+    const storedToken = localStorage.getItem('token');
+    
+    if (storedUser && storedToken) {
       try {
         const user = JSON.parse(storedUser);
         setUser(user);
       } catch (error) {
         localStorage.removeItem('user');
+        localStorage.removeItem('token');
         setUser(null);
       }
     } else {
+      // Token yoksa user'ı da temizle
+      if (!storedToken && storedUser) {
+        localStorage.removeItem('user');
+      }
       setUser(null);
     }
     setLoading(false);
@@ -56,6 +64,31 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       // Login başarılı, user'ı set et
       setUser(response.user);
       localStorage.setItem('user', JSON.stringify(response.user));
+      
+      // Token'ı localStorage'a kaydet
+      if (response.token) {
+        localStorage.setItem('token', response.token);
+      }
+      
+      // Response'u döndür ki LoginPage'de role kontrolü yapılabilsin
+      return response;
+    } catch (error) {
+      throw error;
+    }
+  };
+
+  const loginWithPhone = async (credentials: PhoneLoginRequest) => {
+    try {
+      const response = await apiService.loginWithPhone(credentials);
+      
+      // Login başarılı, user'ı set et
+      setUser(response.user);
+      localStorage.setItem('user', JSON.stringify(response.user));
+      
+      // Token'ı localStorage'a kaydet
+      if (response.token) {
+        localStorage.setItem('token', response.token);
+      }
       
       // Response'u döndür ki LoginPage'de role kontrolü yapılabilsin
       return response;
@@ -70,6 +103,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       
       setUser(response.user);
       localStorage.setItem('user', JSON.stringify(response.user));
+      
+      // Token'ı localStorage'a kaydet
+      if (response.token) {
+        localStorage.setItem('token', response.token);
+      }
     } catch (error) {
       throw error;
     }
@@ -84,6 +122,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     } finally {
       setUser(null);
       localStorage.removeItem('user');
+      localStorage.removeItem('token');
     }
   };
 
@@ -95,6 +134,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const value: AuthContextType = {
     user,
     login,
+    loginWithPhone,
     register,
     logout,
     loading,

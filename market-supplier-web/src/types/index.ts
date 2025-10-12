@@ -30,6 +30,11 @@ export interface LoginRequest {
   password: string;
 }
 
+export interface PhoneLoginRequest {
+  phone: string;
+  password: string;
+}
+
 export interface RegisterRequest {
   name: string;
   email: string;
@@ -44,6 +49,7 @@ export interface AuthResponse {
     role: UserRole;
     createdAt: string;
   };
+  token?: string;
   message?: string;
 }
 
@@ -283,4 +289,19 @@ export interface CartResponse {
   totalItems: number;
   createdAt: string;
   updatedAt: string;
+}
+
+// Notification Types
+export interface Notification {
+  id: number;
+  user: User;
+  type: 'order' | 'delivery' | 'market' | 'system';
+  title: string;
+  message: string;
+  isRead: boolean;
+  priority: 'high' | 'normal';
+  actionUrl?: string;
+  relatedEntityType?: string;
+  relatedEntityId?: number;
+  createdAt: string;
 }

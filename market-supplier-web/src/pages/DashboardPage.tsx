@@ -88,13 +88,14 @@ const StatCard: React.FC<StatCardProps> = ({ title, value, subtitle, icon, color
     <Card
       elevation={0}
       sx={{
-        background: 'rgba(255, 255, 255, 0.95)',
+        background: 'linear-gradient(135deg, rgba(255,255,255,0.95) 0%, rgba(248,250,252,0.95) 100%)',
         backdropFilter: 'blur(20px)',
-        border: '1px solid rgba(255, 255, 255, 0.2)',
+        border: '1px solid rgba(255,255,255,0.2)',
         borderRadius: 3,
         transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
         position: 'relative',
         overflow: 'hidden',
+        boxShadow: '0 8px 32px rgba(0,0,0,0.08)',
         '&::before': {
           content: '""',
           position: 'absolute',
@@ -106,15 +107,26 @@ const StatCard: React.FC<StatCardProps> = ({ title, value, subtitle, icon, color
         },
         '&:hover': {
           transform: 'translateY(-8px)',
-          boxShadow: '0 20px 40px rgba(0, 0, 0, 0.1)',
+          boxShadow: '0 20px 40px rgba(0, 0, 0, 0.12)',
         },
       }}
     >
-      <CardContent sx={{ p: 3 }}>
+      <CardContent sx={{ p: { xs: 2.5, md: 3 } }}>
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
-          <LogoIcon size={48} bg={`linear-gradient(135deg, ${color}, ${color}80)`}>
+          <Box
+            sx={{
+              width: 48,
+              height: 48,
+              borderRadius: '12px',
+              background: `linear-gradient(135deg, ${color}, ${color}80)`,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              boxShadow: `0 6px 20px ${color}30`,
+            }}
+          >
             {icon}
-          </LogoIcon>
+          </Box>
           {trend && (
             <Box
               sx={{
@@ -135,10 +147,10 @@ const StatCard: React.FC<StatCardProps> = ({ title, value, subtitle, icon, color
             </Box>
           )}
         </Box>
-        <Typography variant="h3" fontWeight="800" sx={{ mb: 1, color: 'text.primary' }}>
+        <Typography variant="h4" fontWeight="800" sx={{ mb: 1, color: 'text.primary', fontSize: { xs: '1.75rem', md: '2rem' } }}>
           {value}
         </Typography>
-        <Typography variant="h6" color="text.secondary" sx={{ mb: 1, fontWeight: 600 }}>
+        <Typography variant="body2" color="text.secondary" sx={{ mb: 1, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
           {title}
         </Typography>
         {subtitle && (
@@ -260,25 +272,48 @@ const DashboardPage: React.FC = () => {
         <Paper
           elevation={0}
           sx={{
-            background: 'rgba(255, 255, 255, 0.95)',
+            background: 'linear-gradient(135deg, rgba(255,255,255,0.95) 0%, rgba(248,250,252,0.95) 100%)',
             backdropFilter: 'blur(20px)',
-            border: '1px solid rgba(255, 255, 255, 0.2)',
+            border: '1px solid rgba(255,255,255,0.2)',
             borderRadius: 3,
-            p: 4,
+            p: { xs: 3, md: 4 },
             mb: 4,
-            boxShadow: '0 8px 32px rgba(0, 0, 0, 0.1)',
+            boxShadow: '0 8px 32px rgba(0,0,0,0.08)',
           }}
         >
-          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3 }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+          <Box sx={{ display: 'flex', alignItems: { xs: 'stretch', md: 'center' }, justifyContent: 'space-between', gap: 3, flexWrap: 'wrap' }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 3, minWidth: 0, flex: 1 }}>
               <LogoIcon size={64} bg={`linear-gradient(135deg, ${getRoleColor()}, ${getRoleColor()}80)`}>
                 {getRoleIcon()}
               </LogoIcon>
-              <Box>
-                <Typography variant="h3" fontWeight="800" sx={{ mb: 1 }}>
+              <Box sx={{ minWidth: 0 }}>
+                <Typography 
+                  variant="h4" 
+                  fontWeight={900} 
+                  sx={{ 
+                    mb: 1, 
+                    whiteSpace: 'nowrap', 
+                    overflow: 'hidden', 
+                    textOverflow: 'ellipsis',
+                    background: 'linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%)',
+                    backgroundClip: 'text',
+                    WebkitBackgroundClip: 'text',
+                    WebkitTextFillColor: 'transparent',
+                    fontSize: { xs: '1.75rem', md: '2.25rem' },
+                    letterSpacing: '-0.02em'
+                  }}
+                >
                   Hoş Geldiniz, {user?.name}!
                 </Typography>
-                <Typography variant="h6" color="text.secondary" sx={{ fontWeight: 500 }}>
+                <Typography 
+                  variant="h6" 
+                  sx={{ 
+                    color: 'text.secondary',
+                    fontWeight: 500,
+                    fontSize: { xs: '1rem', md: '1.125rem' },
+                    opacity: 0.8
+                  }}
+                >
                   {getRoleText()}
                 </Typography>
               </Box>
@@ -287,15 +322,19 @@ const DashboardPage: React.FC = () => {
               <IconButton
                 onClick={() => window.location.reload()}
                 sx={{
-                  background: 'rgba(102, 126, 234, 0.1)',
+                  background: 'linear-gradient(135deg, rgba(102, 126, 234, 0.1), rgba(118, 75, 162, 0.1))',
                   color: 'primary.main',
+                  boxShadow: '0 4px 14px rgba(102, 126, 234, 0.2)',
                   '&:hover': {
-                    background: 'rgba(102, 126, 234, 0.2)',
-                    transform: 'scale(1.05)',
+                    background: 'linear-gradient(135deg, rgba(102, 126, 234, 0.2), rgba(118, 75, 162, 0.2))',
+                    transform: 'scale(1.05) translateY(-1px)',
+                    boxShadow: '0 6px 20px rgba(102, 126, 234, 0.3)',
                   },
+                  transition: 'all 0.3s ease',
+                  borderRadius: 2,
                 }}
               >
-                <RefreshIcon />
+                <RefreshIcon sx={{ fontSize: '1.2rem' }} />
               </IconButton>
             </Tooltip>
           </Box>
@@ -307,20 +346,41 @@ const DashboardPage: React.FC = () => {
         <Paper
           elevation={0}
           sx={{
-            background: 'rgba(255, 255, 255, 0.95)',
+            background: 'linear-gradient(135deg, rgba(255,255,255,0.95) 0%, rgba(248,250,252,0.95) 100%)',
             backdropFilter: 'blur(20px)',
-            border: '1px solid rgba(255, 255, 255, 0.2)',
+            border: '1px solid rgba(255,255,255,0.2)',
             borderRadius: 3,
-            p: 4,
+            p: { xs: 3, md: 4 },
             mb: 4,
-            boxShadow: '0 8px 32px rgba(0, 0, 0, 0.1)',
+            boxShadow: '0 8px 32px rgba(0,0,0,0.08)',
           }}
         >
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
-            <LogoIcon size={40} bg={'linear-gradient(135deg, #667eea, #764ba2)'}>
-              <SpeedIcon />
-            </LogoIcon>
-            <Typography variant="h4" fontWeight="700" sx={{ background: 'linear-gradient(135deg, #667eea, #764ba2)', backgroundClip: 'text', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+            <Box
+              sx={{
+                width: 40,
+                height: 40,
+                borderRadius: '12px',
+                background: 'linear-gradient(135deg, #667eea, #764ba2)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                boxShadow: '0 6px 20px rgba(102, 126, 234, 0.3)'
+              }}
+            >
+              <SpeedIcon sx={{ fontSize: '1.25rem', color: 'white' }} />
+            </Box>
+            <Typography 
+              variant="h6" 
+              sx={{ 
+                fontWeight: 700,
+                background: 'linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%)',
+                backgroundClip: 'text',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                fontSize: '1.25rem'
+              }}
+            >
               Hızlı İşlemler
             </Typography>
           </Box>
@@ -331,14 +391,15 @@ const DashboardPage: React.FC = () => {
                 <Card
                   elevation={0}
                   sx={{
-                    background: 'rgba(255, 255, 255, 0.8)',
-                    backdropFilter: 'blur(10px)',
-                    border: '1px solid rgba(255, 255, 255, 0.3)',
+                    background: 'linear-gradient(135deg, rgba(255,255,255,0.95) 0%, rgba(248,250,252,0.95) 100%)',
+                    backdropFilter: 'blur(20px)',
+                    border: '1px solid rgba(255,255,255,0.2)',
                     borderRadius: 3,
                     transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
                     cursor: 'pointer',
                     position: 'relative',
                     overflow: 'hidden',
+                    boxShadow: '0 8px 32px rgba(0,0,0,0.08)',
                     '&:hover': {
                       transform: 'translateY(-8px) scale(1.02)',
                       boxShadow: '0 20px 40px rgba(0, 0, 0, 0.15)',
@@ -353,9 +414,22 @@ const DashboardPage: React.FC = () => {
                   onClick={() => navigate(action.path)}
                 >
                   <CardContent sx={{ p: 3, textAlign: 'center' }}>
-                    <LogoIcon size={56} bg={gradientFor(action.color)}>
+                    <Box
+                      sx={{
+                        width: 56,
+                        height: 56,
+                        borderRadius: '16px',
+                        background: gradientFor(action.color),
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        margin: '0 auto 16px auto',
+                        boxShadow: `0 8px 24px ${action.color}30`,
+                        transition: 'all 0.3s ease'
+                      }}
+                    >
                       {action.icon}
-                    </LogoIcon>
+                    </Box>
                     <Typography variant="h6" fontWeight="600" sx={{ mb: 1, color: 'text.primary' }}>
                       {action.title}
                     </Typography>
@@ -384,20 +458,41 @@ const DashboardPage: React.FC = () => {
         <Paper
           elevation={0}
           sx={{
-            background: 'rgba(255, 255, 255, 0.95)',
+            background: 'linear-gradient(135deg, rgba(255,255,255,0.95) 0%, rgba(248,250,252,0.95) 100%)',
             backdropFilter: 'blur(20px)',
-            border: '1px solid rgba(255, 255, 255, 0.2)',
+            border: '1px solid rgba(255,255,255,0.2)',
             borderRadius: 3,
-            p: 4,
+            p: { xs: 3, md: 4 },
             mb: 4,
-            boxShadow: '0 8px 32px rgba(0, 0, 0, 0.1)',
+            boxShadow: '0 8px 32px rgba(0,0,0,0.08)',
           }}
         >
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
-            <LogoIcon size={40} bg={'linear-gradient(135deg, #667eea, #764ba2)'}>
-              <AnalyticsIcon />
-            </LogoIcon>
-            <Typography variant="h4" fontWeight="700" sx={{ background: 'linear-gradient(135deg, #667eea, #764ba2)', backgroundClip: 'text', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+            <Box
+              sx={{
+                width: 40,
+                height: 40,
+                borderRadius: '12px',
+                background: 'linear-gradient(135deg, #667eea, #764ba2)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                boxShadow: '0 6px 20px rgba(102, 126, 234, 0.3)'
+              }}
+            >
+              <AnalyticsIcon sx={{ fontSize: '1.25rem', color: 'white' }} />
+            </Box>
+            <Typography 
+              variant="h6" 
+              sx={{ 
+                fontWeight: 700,
+                background: 'linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%)',
+                backgroundClip: 'text',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                fontSize: '1.25rem'
+              }}
+            >
               Detaylı Panel
             </Typography>
           </Box>
@@ -405,7 +500,7 @@ const DashboardPage: React.FC = () => {
           <Button
             variant="contained"
             size="large"
-            startIcon={<Assignment />}
+            startIcon={<Assignment sx={{ fontSize: '1.2rem' }} />}
             onClick={() => navigate(getRoleSpecificDashboard())}
             sx={{
               background: 'linear-gradient(135deg, #667eea, #764ba2)',
@@ -416,6 +511,7 @@ const DashboardPage: React.FC = () => {
               fontWeight: 600,
               textTransform: 'none',
               boxShadow: '0 8px 25px rgba(102, 126, 234, 0.3)',
+              transition: 'all 0.3s ease',
               '&:hover': {
                 background: 'linear-gradient(135deg, #5a6fd8, #6a4190)',
                 transform: 'translateY(-2px)',
@@ -436,19 +532,40 @@ const DashboardPage: React.FC = () => {
           <Paper
             elevation={0}
             sx={{
-              background: 'rgba(255, 255, 255, 0.95)',
+              background: 'linear-gradient(135deg, rgba(255,255,255,0.95) 0%, rgba(248,250,252,0.95) 100%)',
               backdropFilter: 'blur(20px)',
-              border: '1px solid rgba(255, 255, 255, 0.2)',
+              border: '1px solid rgba(255,255,255,0.2)',
               borderRadius: 3,
-              p: 4,
-              boxShadow: '0 8px 32px rgba(0, 0, 0, 0.1)',
+              p: { xs: 3, md: 4 },
+              boxShadow: '0 8px 32px rgba(0,0,0,0.08)',
             }}
           >
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 4 }}>
-              <LogoIcon size={40} bg={'linear-gradient(135deg, #667eea, #764ba2)'}>
-                <AssessmentIcon />
-              </LogoIcon>
-              <Typography variant="h4" fontWeight="700" sx={{ background: 'linear-gradient(135deg, #667eea, #764ba2)', backgroundClip: 'text', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+              <Box
+                sx={{
+                  width: 40,
+                  height: 40,
+                  borderRadius: '12px',
+                  background: 'linear-gradient(135deg, #667eea, #764ba2)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  boxShadow: '0 6px 20px rgba(102, 126, 234, 0.3)'
+                }}
+              >
+                <AssessmentIcon sx={{ fontSize: '1.25rem', color: 'white' }} />
+              </Box>
+              <Typography 
+                variant="h6" 
+                sx={{ 
+                  fontWeight: 700,
+                  background: 'linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%)',
+                  backgroundClip: 'text',
+                  WebkitBackgroundClip: 'text',
+                  WebkitTextFillColor: 'transparent',
+                  fontSize: '1.25rem'
+                }}
+              >
                 Sistem İstatistikleri
               </Typography>
             </Box>

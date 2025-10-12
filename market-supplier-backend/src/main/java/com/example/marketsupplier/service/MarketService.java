@@ -31,6 +31,9 @@ public class MarketService {
     @Autowired
     private GeocodingService geocodingService;
     
+    @Autowired
+    private NotificationService notificationService;
+    
     // Create new market
     public Market createMarket(Long userId, String name, String address, String phone) {
         // Get user
@@ -67,7 +70,17 @@ public class MarketService {
             log.error("Error during geocoding for market '{}': {}", name, e.getMessage());
         }
         
-        return marketRepository.save(market);
+        Market savedMarket = marketRepository.save(market);
+        
+        // Bildirim oluştur
+        try {
+            notificationService.notifyNewMarket(user, name);
+            log.info("Notification created for new market: {}", name);
+        } catch (Exception e) {
+            log.error("Failed to create notification for market '{}': {}", name, e.getMessage());
+        }
+        
+        return savedMarket;
     }
     
     // Find market by ID

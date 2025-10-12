@@ -4,6 +4,7 @@ import com.example.marketsupplier.dto.*;
 import com.example.marketsupplier.entity.Market;
 import com.example.marketsupplier.entity.User;
 import com.example.marketsupplier.entity.UserRole;
+import com.example.marketsupplier.config.CustomUserDetailsService.CustomUserPrincipal;
 import com.example.marketsupplier.service.AuthService;
 import com.example.marketsupplier.service.MarketService;
 import jakarta.validation.Valid;
@@ -313,17 +314,37 @@ public class MarketController {
     // Helper methods
     private Long getUserIdFromAuthentication(Authentication authentication) {
         try {
-            User user = (User) authentication.getPrincipal();
-            return user.getId();
+            System.out.println("[MarketController] Authentication principal type: " + authentication.getPrincipal().getClass().getName());
+            
+            if (authentication.getPrincipal() instanceof CustomUserPrincipal) {
+                CustomUserPrincipal userDetails = (CustomUserPrincipal) authentication.getPrincipal();
+                System.out.println("[MarketController] User ID from CustomUserPrincipal: " + userDetails.getUser().getId());
+                return userDetails.getUser().getId();
+            } else if (authentication.getPrincipal() instanceof User) {
+                User user = (User) authentication.getPrincipal();
+                System.out.println("[MarketController] User ID from User: " + user.getId());
+                return user.getId();
+            } else {
+                System.out.println("[MarketController] Unknown principal type: " + authentication.getPrincipal().getClass().getName());
+                return null;
+            }
         } catch (Exception e) {
+            System.out.println("[MarketController] Error getting user ID: " + e.getMessage());
+            e.printStackTrace();
             return null;
         }
     }
     
     private boolean isAdmin(Authentication authentication) {
         try {
-            User user = (User) authentication.getPrincipal();
-            return user.getRole() == UserRole.ADMIN;
+            if (authentication.getPrincipal() instanceof CustomUserPrincipal) {
+                CustomUserPrincipal userDetails = (CustomUserPrincipal) authentication.getPrincipal();
+                return userDetails.getUser().getRole() == UserRole.ADMIN;
+            } else if (authentication.getPrincipal() instanceof User) {
+                User user = (User) authentication.getPrincipal();
+                return user.getRole() == UserRole.ADMIN;
+            }
+            return false;
         } catch (Exception e) {
             return false;
         }

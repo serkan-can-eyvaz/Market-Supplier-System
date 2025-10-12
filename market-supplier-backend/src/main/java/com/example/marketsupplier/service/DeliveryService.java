@@ -8,6 +8,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -16,6 +18,8 @@ import java.util.Optional;
 @Service
 @Transactional
 public class DeliveryService {
+    
+    private static final Logger log = LoggerFactory.getLogger(DeliveryService.class);
     
     @Autowired
     private DeliveryRepository deliveryRepository;
@@ -28,6 +32,9 @@ public class DeliveryService {
     
     @Autowired
     private OrderRepository orderRepository;
+    
+    @Autowired
+    private NotificationService notificationService;
     
     // Create delivery assignment
     public Delivery createDelivery(Long orderId, Long supplierId) {
@@ -48,7 +55,18 @@ public class DeliveryService {
         
         // Create delivery
         Delivery delivery = new Delivery(order, supplier);
-        return deliveryRepository.save(delivery);
+        Delivery savedDelivery = deliveryRepository.save(delivery);
+        
+        // Tedarikçiye bildirim gönder
+        try {
+            User supplierUser = supplier.getUser();
+            notificationService.notifyNewDelivery(supplierUser, order.getMarket().getName(), savedDelivery.getId());
+            log.info("Notification created for new delivery: {} to market: {}", savedDelivery.getId(), order.getMarket().getName());
+        } catch (Exception e) {
+            log.error("Failed to create notification for delivery '{}': {}", savedDelivery.getId(), e.getMessage());
+        }
+        
+        return savedDelivery;
     }
 
     // Create deliveries for all APPROVED orders without delivery for a supplier
@@ -101,7 +119,18 @@ public class DeliveryService {
         // OrderService.completeOrder yalnizca PENDING icin izin veriyor olabilir; burada direkt kaydediyoruz
         orderRepository.save(order);
         
-        return deliveryRepository.save(delivery);
+        Delivery savedDelivery = deliveryRepository.save(delivery);
+        
+        // Market sahibine teslimat tamamlandı bildirimi gönder
+        try {
+            User marketUser = order.getMarket().getUser();
+            notificationService.notifyDeliveryStatusChange(marketUser, "DELIVERED", order.getMarket().getName(), savedDelivery.getId());
+            log.info("Notification created for delivery completion: {} to market: {}", savedDelivery.getId(), order.getMarket().getName());
+        } catch (Exception e) {
+            log.error("Failed to create notification for delivery completion '{}': {}", savedDelivery.getId(), e.getMessage());
+        }
+        
+        return savedDelivery;
     }
     
     // Find delivery by ID

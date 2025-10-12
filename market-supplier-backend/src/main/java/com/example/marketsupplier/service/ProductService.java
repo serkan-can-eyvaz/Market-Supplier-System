@@ -72,6 +72,28 @@ public class ProductService {
         return productRepository.findBySupplierIdAndIsActiveTrueOrderByNameAsc(supplier.getId(), pageable);
     }
 
+    // Tüm ürünleri getir (aktif + pasif) - tedarikçi için
+    public Page<Product> getAllSupplierProductsPaginatedWithInactive(User user, Pageable pageable) {
+        System.out.println("DEBUG: getAllSupplierProductsPaginatedWithInactive called for user: " + user.getEmail());
+        
+        Supplier supplier = getOrCreateSupplier(user);
+        System.out.println("DEBUG: Supplier found: " + supplier.getId());
+        
+        // Get all products (active + inactive)
+        return productRepository.findBySupplierIdOrderByNameAsc(supplier.getId(), pageable);
+    }
+
+    // Sadece pasif ürünleri getir - tedarikçi için
+    public Page<Product> getInactiveSupplierProductsPaginated(User user, Pageable pageable) {
+        System.out.println("DEBUG: getInactiveSupplierProductsPaginated called for user: " + user.getEmail());
+        
+        Supplier supplier = getOrCreateSupplier(user);
+        System.out.println("DEBUG: Supplier found: " + supplier.getId());
+        
+        // Get only inactive products
+        return productRepository.findBySupplierIdAndIsActiveFalseOrderByNameAsc(supplier.getId(), pageable);
+    }
+
     @CacheEvict(value = "products", key = "#user.id + '_*'")
     public Product createProduct(User user, String name, String description, String unit, BigDecimal price) {
         return createProduct(user, name, description, unit, price, 0);

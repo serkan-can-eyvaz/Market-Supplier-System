@@ -2,6 +2,7 @@ import axios, { AxiosInstance, AxiosResponse } from 'axios';
 import { 
   AuthResponse, 
   LoginRequest, 
+  PhoneLoginRequest,
   RegisterRequest, 
   User, 
   UserRole,
@@ -24,7 +25,8 @@ import {
   ProductCreateRequest,
   ProductUpdateRequest,
   CartItem,
-  CartResponse
+  CartResponse,
+  Notification
 } from '../types';
 
 // API base URL - environment'a göre ayarla
@@ -32,12 +34,13 @@ const getApiBaseUrl = () => {
   const hostname = window.location.hostname;
   
   if (hostname === 'localhost' || hostname === '127.0.0.1') {
-    // Development ortamı - production backend kullan (CORS düzeltmesi için)
-    return 'https://tedarikasistani.com/api';
+    // Development ortamı - local backend kullan
+    return 'http://localhost:8080/api';
   }
   
-  // Production ortamı
-  return 'https://tedarikasistani.com/api';
+  // Production ortamı (commented out for local development)
+  // return 'https://tedarikasistani.com/api';
+  return 'http://localhost:8080/api';
 };
 
 class ApiService {
@@ -59,29 +62,55 @@ class ApiService {
         const token = localStorage.getItem('token');
         if (token) {
           config.headers.Authorization = `Bearer ${token}`;
+          console.log('[ApiService] Request interceptor - Token added:', token.substring(0, 20) + '...');
+        } else {
+          console.log('[ApiService] Request interceptor - No token found in localStorage');
         }
+        
+        console.log('[ApiService] Making request to:', config.method?.toUpperCase(), config.url);
         return config;
       },
       (error) => {
+        console.log('[ApiService] Request interceptor error:', error);
         return Promise.reject(error);
       }
     );
 
         // Response interceptor to handle errors
         this.api.interceptors.response.use(
-          (response) => response,
+          (response) => {
+            console.log('[ApiService] Response received:', response.status, response.config.url);
+            return response;
+          },
           async (error) => {
+            console.log('[ApiService] Response error:', error.response?.status, error.response?.data, error.config?.url);
+            
             // Handle JWT authentication errors
-            if (error.response?.status === 401 || error.response?.status === 403) {
-              // Token expired or invalid - clear storage and redirect to login
-              localStorage.removeItem('user');
-              localStorage.removeItem('token');
-              if (!window.location.pathname.includes('/login')) {
-                window.location.href = '/login';
+            if (error.response?.status === 401) {
+              console.log('[ApiService] 401 Unauthorized - token invalid or expired');
+              console.log('[ApiService] Error response data:', error.response.data);
+              
+              // Check if the error is actually about invalid token
+              if (error.response.data?.message === 'Invalid token' || 
+                  error.response.data?.error === 'Unauthorized') {
+                console.log('[ApiService] Confirmed invalid token - clearing localStorage');
+                // Only clear localStorage and redirect if not already on login page
+                if (!window.location.pathname.includes('/login')) {
+                  console.log('[ApiService] Redirecting to login page');
+                  localStorage.removeItem('user');
+                  localStorage.removeItem('token');
+                  // Use history API instead of window.location.href to avoid page reload
+                  window.history.pushState(null, '', '/login');
+                  window.dispatchEvent(new PopStateEvent('popstate'));
+                }
+              } else {
+                console.log('[ApiService] 401 error but not token-related, keeping localStorage');
               }
+            } else if (error.response?.status === 403) {
+              console.log('[ApiService] 403 Forbidden - insufficient permissions');
+              // Don't clear localStorage for 403 errors, just log the issue
             }
             
-            console.log('API Error:', error.response?.status, error.response?.data);
             return Promise.reject(error);
           }
         );
@@ -89,14 +118,56 @@ class ApiService {
 
   // Auth API
   async login(credentials: LoginRequest): Promise<AuthResponse> {
+    console.log('[ApiService] Starting login process...');
     const response: AxiosResponse<any> = await this.api.post('/auth/login', credentials);
+    
+    console.log('[ApiService] Login response:', response.data);
+    console.log('[ApiService] Token exists:', !!response.data.token);
+    console.log('[ApiService] User exists:', !!response.data.user);
     
     // Store token and user if present
     if (response.data.token) {
       localStorage.setItem('token', response.data.token);
+      console.log('[ApiService] Token stored in localStorage:', response.data.token.substring(0, 20) + '...');
+      
+      // Verify token was stored correctly
+      const storedToken = localStorage.getItem('token');
+      console.log('[ApiService] Token verification - stored correctly:', storedToken === response.data.token);
+    } else {
+      console.log('[ApiService] No token in response!');
     }
+    
     if (response.data.user) {
       localStorage.setItem('user', JSON.stringify(response.data.user));
+      console.log('[ApiService] User stored in localStorage');
+    } else {
+      console.log('[ApiService] No user in response!');
+    }
+    
+    return response.data;
+  }
+
+  async loginWithPhone(credentials: PhoneLoginRequest): Promise<AuthResponse> {
+    console.log('[ApiService] Starting phone login process...');
+    const response: AxiosResponse<any> = await this.api.post('/auth/login-phone', credentials);
+    
+    console.log('[ApiService] Phone login response:', response.data);
+    console.log('[ApiService] Token exists:', !!response.data.token);
+    console.log('[ApiService] User exists:', !!response.data.user);
+    
+    // Store token and user if present
+    if (response.data.token) {
+      localStorage.setItem('token', response.data.token);
+      console.log('[ApiService] Token stored in localStorage:', response.data.token.substring(0, 20) + '...');
+    } else {
+      console.log('[ApiService] No token in response!');
+    }
+    
+    if (response.data.user) {
+      localStorage.setItem('user', JSON.stringify(response.data.user));
+      console.log('[ApiService] User stored in localStorage');
+    } else {
+      console.log('[ApiService] No user in response!');
     }
     
     return response.data;
@@ -174,9 +245,14 @@ class ApiService {
   // Removed: getMyMarket (single)
 
   async getMyMarkets(page: number = 0, size: number = 10, sortBy: string = 'createdAt', sortDir: string = 'desc'): Promise<PaginatedResponse<Market>> {
+    console.log('[ApiService] getMyMarkets called with params:', { page, size, sortBy, sortDir });
+    console.log('[ApiService] Current token in localStorage:', localStorage.getItem('token') ? 'EXISTS' : 'NOT_FOUND');
+    
     const response: AxiosResponse<PaginatedResponse<Market>> = await this.api.get('/markets/my-markets', {
       params: { page, size, sortBy, sortDir }
     });
+    
+    console.log('[ApiService] getMyMarkets response received:', response.status);
     return response.data;
   }
 
@@ -409,9 +485,9 @@ class ApiService {
   }
 
   // Product methods
-  async getProducts(page: number = 0, size: number = 10, sortBy: string = 'createdAt', sortDir: string = 'desc'): Promise<PaginatedResponse<Product>> {
+  async getProducts(page: number = 0, size: number = 10, sortBy: string = 'createdAt', sortDir: string = 'desc', filter: string = 'active'): Promise<PaginatedResponse<Product>> {
     const response: AxiosResponse<PaginatedResponse<Product>> = await this.api.get('/products', {
-      params: { page, size, sortBy, sortDir }
+      params: { page, size, sortBy, sortDir, filter }
     });
     return response.data;
   }
@@ -525,6 +601,39 @@ class ApiService {
   async downloadCartPdf(): Promise<Blob> {
     const response = await this.api.get('/cart/pdf', { responseType: 'blob' });
     return response.data as Blob;
+  }
+
+  // Notification Methods
+  async getNotifications(): Promise<Notification[]> {
+    const response: AxiosResponse<Notification[]> = await this.api.get('/notifications');
+    return response.data;
+  }
+
+  async getUnreadNotifications(): Promise<Notification[]> {
+    const response: AxiosResponse<Notification[]> = await this.api.get('/notifications/unread');
+    return response.data;
+  }
+
+  async getUnreadCount(): Promise<{ count: number }> {
+    const response: AxiosResponse<{ count: number }> = await this.api.get('/notifications/unread-count');
+    return response.data;
+  }
+
+  async getRecentNotifications(limit: number = 10): Promise<Notification[]> {
+    const response: AxiosResponse<Notification[]> = await this.api.get('/notifications/recent', {
+      params: { limit }
+    });
+    return response.data;
+  }
+
+  async markNotificationAsRead(notificationId: number): Promise<Notification> {
+    const response: AxiosResponse<Notification> = await this.api.put(`/notifications/${notificationId}/read`);
+    return response.data;
+  }
+
+  async markAllNotificationsAsRead(): Promise<{ message: string }> {
+    const response: AxiosResponse<{ message: string }> = await this.api.put('/notifications/mark-all-read');
+    return response.data;
   }
 }
 

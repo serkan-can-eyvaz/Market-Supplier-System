@@ -42,6 +42,9 @@ public class OrderService {
     @Autowired
     private CartService cartService;
     
+    @Autowired
+    private NotificationService notificationService;
+    
     // Create new order
     public Order createOrder(Long marketId) {
         // Get market
@@ -80,7 +83,18 @@ public class OrderService {
         }
         order.setTotalPrice(total);
 
-        return orderRepository.save(order);
+        Order savedOrder = orderRepository.save(order);
+        
+        // Tedarikçiye bildirim gönder
+        try {
+            User supplierUser = market.getUser(); // Market sahibi tedarikçi
+            notificationService.notifyNewOrder(supplierUser, market.getName(), savedOrder.getId());
+            log.info("Notification created for new order: {} from market: {}", savedOrder.getId(), market.getName());
+        } catch (Exception e) {
+            log.error("Failed to create notification for order '{}': {}", savedOrder.getId(), e.getMessage());
+        }
+
+        return savedOrder;
     }
 
     // Add item to order
@@ -206,20 +220,13 @@ public class OrderService {
         order.setStatus(OrderStatus.APPROVED);
         Order savedOrder = orderRepository.save(order);
         
-        // Send WhatsApp notification to market
+        // Market sahibine bildirim gönder
         try {
-            String marketPhone = order.getMarket().getPhone();
-            String message;
-            if (order.getDelivery() != null && order.getDelivery().getEstimatedDeliveryTime() != null) {
-                String formattedDate = order.getDelivery().getEstimatedDeliveryTime()
-                        .format(java.time.format.DateTimeFormatter.ofPattern("dd MMMM yyyy, HH:mm", new java.util.Locale("tr")));
-                message = String.format("Siparişiniz #%d onaylandı!\nTahmini teslimat tarihi: %s.", orderId, formattedDate);
-            } else {
-                message = "Siparişiniz #" + orderId + " onaylandı! En kısa sürede teslim edilecektir.";
-            }
-            // WhatsApp notification removed - no longer needed
+            User marketUser = order.getMarket().getUser();
+            notificationService.notifyOrderStatusChange(marketUser, "APPROVED", savedOrder.getId());
+            log.info("Notification created for order approval: {}", savedOrder.getId());
         } catch (Exception e) {
-            log.error("Failed to send WhatsApp notification for order approval", e);
+            log.error("Failed to create notification for order approval '{}': {}", savedOrder.getId(), e.getMessage());
         }
         
         return savedOrder;

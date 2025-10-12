@@ -23,7 +23,6 @@ import {
   Storefront as StorefrontIcon,
   LocationOn as LocationIcon,
   Phone as PhoneIcon,
-  WhatsApp as WhatsAppIcon,
   Save as SaveIcon,
   Cancel as CancelIcon,
   ArrowBack as ArrowBackIcon,
@@ -39,7 +38,6 @@ const AddMarketPage: React.FC = () => {
   const [name, setName] = useState<string>('');
   const [address, setAddress] = useState<string>('');
   const [phone, setPhone] = useState<string>('');
-  const [marketNumber, setMarketNumber] = useState<string>(''); // WhatsApp doğrulaması için istemci alanı
   const [error, setError] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(false);
   const [success, setSuccess] = useState<boolean>(false);
@@ -274,30 +272,6 @@ const AddMarketPage: React.FC = () => {
                       }}
                     />
 
-                    {/* WhatsApp Numarası */}
-                    <TextField
-                      fullWidth
-                      label="Market Numarası (WhatsApp doğrulaması için)"
-                      value={marketNumber}
-                      onChange={(e) => setMarketNumber(e.target.value)}
-                      helperText="Bu alan backend'e gönderilmez; doğrulama süreciniz için bilgilendiricidir."
-                      InputProps={{
-                        startAdornment: (
-                          <InputAdornment position="start">
-                            <WhatsAppIcon sx={{ color: '#25D366' }} />
-                          </InputAdornment>
-                        ),
-                      }}
-                      sx={{
-                        '& .MuiOutlinedInput-root': {
-                          borderRadius: 2
-                        },
-                        '& .MuiFormHelperText-root': {
-                          color: 'text.secondary',
-                          fontSize: '0.875rem'
-                        }
-                      }}
-                    />
 
                     <Divider sx={{ my: 2 }} />
 
@@ -371,8 +345,7 @@ const AddMarketPage: React.FC = () => {
                   <Typography variant="body2" color="text.secondary">
                     • Market adı benzersiz olmalıdır<br/>
                     • Adres bilgisi detaylı ve doğru olmalıdır<br/>
-                    • Telefon numarası geçerli olmalıdır<br/>
-                    • WhatsApp numarası doğrulama için kullanılacaktır
+                    • Telefon numarası geçerli olmalıdır
                   </Typography>
                 </Box>
               </Box>

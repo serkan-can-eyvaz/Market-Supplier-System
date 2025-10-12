@@ -33,7 +33,11 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         final String jwt;
         final String userEmail;
 
+        System.out.println("[JwtAuthenticationFilter] Processing request: " + request.getMethod() + " " + request.getRequestURI());
+        System.out.println("[JwtAuthenticationFilter] Authorization header: " + (authHeader != null ? authHeader.substring(0, Math.min(20, authHeader.length())) + "..." : "null"));
+
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            System.out.println("[JwtAuthenticationFilter] No valid Authorization header found");
             filterChain.doFilter(request, response);
             return;
         }
@@ -57,7 +61,18 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 );
                 authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                 SecurityContextHolder.getContext().setAuthentication(authToken);
-                System.out.println("[JwtAuthenticationFilter] Authentication set successfully");
+                System.out.println("[JwtAuthenticationFilter] Authentication set successfully for user: " + userEmail);
+            } else {
+                System.out.println("[JwtAuthenticationFilter] Token validation failed for user: " + userEmail);
+                System.out.println("[JwtAuthenticationFilter] Token might be expired or invalid");
+            }
+        } else {
+            System.out.println("[JwtAuthenticationFilter] User email is null or authentication already exists");
+            if (userEmail == null) {
+                System.out.println("[JwtAuthenticationFilter] User email is null");
+            }
+            if (SecurityContextHolder.getContext().getAuthentication() != null) {
+                System.out.println("[JwtAuthenticationFilter] Authentication already exists");
             }
         }
         

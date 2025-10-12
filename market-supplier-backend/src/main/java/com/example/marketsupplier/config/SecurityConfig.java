@@ -107,9 +107,10 @@ public class SecurityConfig {
         // Session cookie'leri için spesifik origin'ler
         configuration.setAllowedOrigins(Arrays.asList(
             "http://localhost:3000",
-            "http://127.0.0.1:3000",
-            "https://tedarikasistani.com",
-            "https://www.tedarikasistani.com"
+            "http://127.0.0.1:3000"
+            // Production origins (commented out for local development)
+            //"https://tedarikasistani.com",
+            //"https://www.tedarikasistani.com"
         ));
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(Arrays.asList("*"));

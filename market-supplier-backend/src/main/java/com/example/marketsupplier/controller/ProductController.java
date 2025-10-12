@@ -4,6 +4,7 @@ import com.example.marketsupplier.entity.Product;
 import com.example.marketsupplier.entity.User;
 import com.example.marketsupplier.service.ProductService;
 import com.example.marketsupplier.dto.*;
+import com.example.marketsupplier.config.CustomUserDetailsService.CustomUserPrincipal;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -38,15 +39,30 @@ public class ProductController {
                                                @RequestParam(defaultValue = "0") int page,
                                                @RequestParam(defaultValue = "10") int size,
                                                @RequestParam(defaultValue = "createdAt") String sortBy,
-                                               @RequestParam(defaultValue = "desc") String sortDir) {
+                                               @RequestParam(defaultValue = "desc") String sortDir,
+                                               @RequestParam(defaultValue = "active") String filter) {
         try {
-            User user = (User) authentication.getPrincipal();
+            User user = getUserFromAuthentication(authentication);
             
             // Create pagination
             Sort.Direction direction = sortDir.equalsIgnoreCase("desc") ? Sort.Direction.DESC : Sort.Direction.ASC;
             Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortBy));
             
-            Page<Product> productPage = productService.getAllSupplierProductsPaginated(user, pageable);
+            Page<Product> productPage;
+            switch (filter) {
+                case "inactive":
+                    // Get only inactive products
+                    productPage = productService.getInactiveSupplierProductsPaginated(user, pageable);
+                    break;
+                case "all":
+                    // Get all products (active + inactive)
+                    productPage = productService.getAllSupplierProductsPaginatedWithInactive(user, pageable);
+                    break;
+                default: // "active"
+                    // Get only active products
+                    productPage = productService.getAllSupplierProductsPaginated(user, pageable);
+                    break;
+            }
             
             PaginatedResponse<Product> paginatedResponse = new PaginatedResponse<>(
                 productPage.getContent(),
@@ -67,7 +83,7 @@ public class ProductController {
     @GetMapping("/supplier/all")
     public ResponseEntity<?> getAllSupplierProducts(Authentication authentication) {
         try {
-            User user = (User) authentication.getPrincipal();
+            User user = getUserFromAuthentication(authentication);
             List<Product> products = productService.getAllSupplierProducts(user);
             return ResponseEntity.ok(products);
         } catch (Exception e) {
@@ -80,7 +96,7 @@ public class ProductController {
             Authentication authentication,
             @Valid @RequestBody ProductCreateRequest request) {
         try {
-            User user = (User) authentication.getPrincipal();
+            User user = getUserFromAuthentication(authentication);
             
             Product product = productService.createProduct(user, request.getName(), request.getDescription(), 
                                                           request.getUnit(), request.getPrice(), request.getStockQuantity());
@@ -99,7 +115,7 @@ public class ProductController {
             @PathVariable Long id,
             @Valid @RequestBody ProductUpdateRequest request) {
         try {
-            User user = (User) authentication.getPrincipal();
+            User user = getUserFromAuthentication(authentication);
             
             Product product = productService.updateProduct(user, id, request);
             
@@ -117,7 +133,7 @@ public class ProductController {
             @PathVariable Long id,
             @RequestParam Integer stockQuantity) {
         try {
-            User user = (User) authentication.getPrincipal();
+            User user = getUserFromAuthentication(authentication);
             Product product = productService.updateStock(user, id, stockQuantity);
             return ResponseEntity.ok(product);
         } catch (Exception e) {
@@ -128,7 +144,7 @@ public class ProductController {
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteProduct(Authentication authentication, @PathVariable Long id) {
         try {
-            User user = (User) authentication.getPrincipal();
+            User user = getUserFromAuthentication(authentication);
             productService.deleteProduct(user, id);
             return ResponseEntity.ok().build();
         } catch (Exception e) {
@@ -139,7 +155,7 @@ public class ProductController {
     @PutMapping("/{id}/toggle")
     public ResponseEntity<?> toggleProductStatus(Authentication authentication, @PathVariable Long id) {
         try {
-            User user = (User) authentication.getPrincipal();
+            User user = getUserFromAuthentication(authentication);
             Product product = productService.toggleProductStatus(user, id);
             return ResponseEntity.ok(product);
         } catch (Exception e) {
@@ -152,7 +168,7 @@ public class ProductController {
             Authentication authentication,
             @RequestParam String q) {
         try {
-            User user = (User) authentication.getPrincipal();
+            User user = getUserFromAuthentication(authentication);
             List<Product> products = productService.searchProducts(user, q);
             return ResponseEntity.ok(products);
         } catch (Exception e) {
@@ -163,7 +179,7 @@ public class ProductController {
     @GetMapping("/{id}")
     public ResponseEntity<?> getProduct(Authentication authentication, @PathVariable Long id) {
         try {
-            User user = (User) authentication.getPrincipal();
+            User user = getUserFromAuthentication(authentication);
             return productService.getProductById(user, id)
                     .map(ResponseEntity::ok)
                     .orElse(ResponseEntity.notFound().build());
@@ -187,7 +203,7 @@ public class ProductController {
     @GetMapping("/all")
     public ResponseEntity<?> getAllProducts(Authentication authentication) {
         try {
-            User user = (User) authentication.getPrincipal();
+            User user = getUserFromAuthentication(authentication);
             
             // Sadece ADMIN rolü tüm ürünleri görebilir
             if (!user.getRole().name().equals("ADMIN")) {
@@ -205,7 +221,7 @@ public class ProductController {
     @GetMapping("/market/available")
     public ResponseEntity<?> getAvailableProductsForMarket(Authentication authentication) {
         try {
-            User user = (User) authentication.getPrincipal();
+            User user = getUserFromAuthentication(authentication);
             
             // Sadece MARKET rolü bu endpoint'i kullanabilir
             if (!user.getRole().name().equals("MARKET")) {
@@ -227,7 +243,7 @@ public class ProductController {
     @GetMapping("/supplier/formatted")
     public ResponseEntity<?> getSupplierProductsFormatted(Authentication authentication) {
         try {
-            User user = (User) authentication.getPrincipal();
+            User user = getUserFromAuthentication(authentication);
             
             List<Product> products = productService.getSupplierProducts(user);
             List<ProductResponse> responses = products.stream()
@@ -238,6 +254,16 @@ public class ProductController {
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error retrieving products: " + e.getMessage());
         }
+    }
+
+    // Helper method to get User from Authentication
+    private User getUserFromAuthentication(Authentication authentication) {
+        if (authentication.getPrincipal() instanceof CustomUserPrincipal) {
+            return ((CustomUserPrincipal) authentication.getPrincipal()).getUser();
+        } else if (authentication.getPrincipal() instanceof User) {
+            return (User) authentication.getPrincipal();
+        }
+        throw new RuntimeException("Invalid authentication principal");
     }
 
     // Helper method to convert Product to ProductResponse

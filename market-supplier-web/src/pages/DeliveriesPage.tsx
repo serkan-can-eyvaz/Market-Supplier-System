@@ -45,8 +45,6 @@ import {
   Visibility as VisibilityIcon,
   Edit as EditIcon,
   Delete as DeleteIcon,
-  Map as MapIcon,
-  Route as RouteIcon,
   Store as StoreIcon,
   Business as BusinessIcon,
   CalendarToday as CalendarIcon,
@@ -140,17 +138,6 @@ const DeliveriesPage: React.FC = () => {
     }
   };
 
-  const handleOpenMap = (delivery: Delivery) => {
-    const address = delivery.marketAddress || delivery.marketName;
-    window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`, '_blank');
-    handleMenuClose();
-  };
-
-  const handleOpenRoute = (delivery: Delivery) => {
-    const address = delivery.marketAddress || delivery.marketName;
-    window.open(`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(address)}`, '_blank');
-    handleMenuClose();
-  };
 
   const statusColor = (s: string) => s === 'DELIVERED' ? 'success' : 'warning';
 
@@ -193,45 +180,22 @@ const DeliveriesPage: React.FC = () => {
                 </Typography>
               </Box>
             </Box>
-            <Stack direction="row" spacing={2}>
-              <Tooltip title="Verileri Yenile">
-                <IconButton
-                  onClick={handleRefresh}
-                  disabled={loading}
-                  sx={{
-                    background: 'rgba(255, 107, 107, 0.1)',
-                    color: 'primary.main',
-                    '&:hover': {
-                      background: 'rgba(255, 107, 107, 0.2)',
-                      transform: 'scale(1.05)',
-                    },
-                  }}
-                >
-                  <RefreshIcon />
-                </IconButton>
-              </Tooltip>
-              <Button
-                variant="contained"
-                startIcon={<MapIcon />}
-                onClick={() => window.open('/deliveries/map', '_blank')}
+            <Tooltip title="Verileri Yenile">
+              <IconButton
+                onClick={handleRefresh}
+                disabled={loading}
                 sx={{
-                  background: 'linear-gradient(135deg, #ff6b6b, #ee5a24)',
-                  borderRadius: 2,
-                  px: 3,
-                  py: 1.5,
-                  fontWeight: 600,
-                  textTransform: 'none',
-                  boxShadow: '0 8px 25px rgba(255, 107, 107, 0.3)',
+                  background: 'rgba(255, 107, 107, 0.1)',
+                  color: 'primary.main',
                   '&:hover': {
-                    background: 'linear-gradient(135deg, #ff5252, #d84315)',
-                    transform: 'translateY(-2px)',
-                    boxShadow: '0 12px 35px rgba(255, 107, 107, 0.4)',
+                    background: 'rgba(255, 107, 107, 0.2)',
+                    transform: 'scale(1.05)',
                   },
                 }}
               >
-                Rotayı Gör
-              </Button>
-            </Stack>
+                <RefreshIcon />
+              </IconButton>
+            </Tooltip>
           </Box>
 
           {/* Search Section */}
@@ -464,18 +428,6 @@ const DeliveriesPage: React.FC = () => {
           </ListItemIcon>
           <ListItemText primary="Detay" />
         </MenuItem>
-        <MenuItem onClick={() => selectedDelivery && handleOpenMap(selectedDelivery)}>
-          <ListItemIcon>
-            <MapIcon fontSize="small" sx={{ color: 'info.main' }} />
-          </ListItemIcon>
-          <ListItemText primary="Haritada Aç" />
-        </MenuItem>
-        <MenuItem onClick={() => selectedDelivery && handleOpenRoute(selectedDelivery)}>
-          <ListItemIcon>
-            <DirectionsIcon fontSize="small" sx={{ color: 'warning.main' }} />
-          </ListItemIcon>
-          <ListItemText primary="Rota Oluştur" />
-        </MenuItem>
         {!isAdmin && selectedDelivery?.deliveryStatus !== 'DELIVERED' && (
           <>
             <Divider />
@@ -628,12 +580,8 @@ const DeliveriesPage: React.FC = () => {
                     borderColor: 'grey.300'
                   }}>
                     <Box sx={{ textAlign: 'center' }}>
-                      <MapIcon sx={{ fontSize: 48, color: 'grey.400', mb: 1 }} />
                       <Typography variant="body2" color="text.secondary">
-                        Harita görünümü
-                      </Typography>
-                      <Typography variant="caption" color="text.secondary">
-                        {selectedDelivery.marketName} konumu
+                        Konum bilgisi mevcut değil
                       </Typography>
                     </Box>
                   </Box>

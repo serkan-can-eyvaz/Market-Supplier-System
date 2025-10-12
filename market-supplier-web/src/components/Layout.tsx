@@ -1,6 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import apiService from '../services/api';
+import { Notification } from '../types';
 import {
   AppBar,
   Box,
@@ -23,6 +25,10 @@ import {
   Tooltip,
   Slide,
   Chip,
+  Paper,
+  Fade,
+  Avatar,
+  Button,
 } from '@mui/material';
 import {
   LayoutDashboard,
@@ -38,11 +44,15 @@ import {
   Users,
   Settings,
   ChevronDown,
-  MoreVertical
+  MoreVertical,
+  Clock,
+  CheckCircle,
+  AlertCircle
 } from 'lucide-react';
 import { LogoIcon, UserAvatar } from './ui/Logo';
 
 const drawerWidth = 280;
+
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -52,6 +62,9 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [moreEl, setMoreEl] = useState<null | HTMLElement>(null);
+  const [notificationAnchor, setNotificationAnchor] = useState<null | HTMLElement>(null);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const notificationIdCounter = useRef(1);
   const navigate = useNavigate();
   const location = useLocation();
   const { user, logout, isAdmin, isMarket, isSupplier } = useAuth();
@@ -72,6 +85,77 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
 
   const openMore = (e: React.MouseEvent<HTMLElement>) => setMoreEl(e.currentTarget);
   const closeMore = () => setMoreEl(null);
+
+  // Bildirim fonksiyonları
+  const addNotification = (type: Notification['type'], title: string, message: string, actionUrl?: string, priority: 'high' | 'normal' = 'normal') => {
+    const newNotification: Notification = {
+      id: notificationIdCounter.current++,
+      user: user!,
+      type,
+      title,
+      message,
+      createdAt: new Date().toISOString(),
+      isRead: false,
+      actionUrl,
+      priority,
+    };
+    
+    setNotifications(prev => {
+      // Yüksek öncelikli bildirimleri en üste koy
+        const sorted = [newNotification, ...prev].sort((a, b) => {
+          if (a.priority === 'high' && b.priority !== 'high') return -1;
+          if (b.priority === 'high' && a.priority !== 'high') return 1;
+          return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+        });
+      return sorted.slice(0, 50); // Maksimum 50 bildirim
+    });
+  };
+
+  const markAsRead = (id: number) => {
+    setNotifications(prev => 
+      prev.map(notif => 
+        notif.id === id ? { ...notif, isRead: true } : notif
+      )
+    );
+  };
+
+  const markAllAsRead = async () => {
+    try {
+      // Backend'e tümünü okundu olarak işaretle
+      await apiService.markAllNotificationsAsRead();
+      // Local state'i güncelle
+      setNotifications(prev => 
+        prev.map(notif => ({ ...notif, isRead: true }))
+      );
+    } catch (error) {
+      console.error('Tüm bildirimler okundu olarak işaretlenirken hata:', error);
+    }
+  };
+
+  const handleNotificationClick = async (notification: Notification) => {
+    try {
+      // Backend'e okundu olarak işaretle
+      await apiService.markNotificationAsRead(notification.id);
+      // Local state'i güncelle
+      markAsRead(notification.id);
+    } catch (error) {
+      console.error('Bildirim okundu olarak işaretlenirken hata:', error);
+    }
+    
+    setNotificationAnchor(null);
+    
+    if (notification.actionUrl) {
+      navigate(notification.actionUrl);
+    }
+  };
+
+  const openNotifications = (event: React.MouseEvent<HTMLElement>) => {
+    setNotificationAnchor(event.currentTarget);
+  };
+
+  const closeNotifications = () => {
+    setNotificationAnchor(null);
+  };
 
   const handleSettings = () => {
     navigate('/settings');
@@ -138,6 +222,50 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     if (isSupplier) return 'Tedarikçi';
     return 'Kullanıcı';
   };
+
+  const unreadNotifications = notifications.filter(n => !n.isRead).length;
+
+  // Gerçek bildirimleri yükle
+  useEffect(() => {
+    const loadNotifications = async () => {
+      if (user) {
+        try {
+          const recentNotifications = await apiService.getRecentNotifications(20);
+          // Backend'den gelen bildirimleri state'e ekle
+          setNotifications(prev => {
+            // Mevcut bildirimlerle backend'den gelenleri birleştir
+            const existingIds = new Set(prev.map(n => n.id.toString()));
+            const newNotifications = recentNotifications
+              .filter(n => !existingIds.has(n.id.toString()))
+              .map(backendNotification => ({
+                id: backendNotification.id,
+                user: backendNotification.user,
+                type: backendNotification.type,
+                title: backendNotification.title,
+                message: backendNotification.message,
+                isRead: backendNotification.isRead,
+                priority: backendNotification.priority,
+                actionUrl: backendNotification.actionUrl,
+                relatedEntityType: backendNotification.relatedEntityType,
+                relatedEntityId: backendNotification.relatedEntityId,
+                createdAt: backendNotification.createdAt
+              }));
+            
+            return [...newNotifications, ...prev].slice(0, 50); // Son 50 bildirimi tut
+          });
+        } catch (error) {
+          console.error('Bildirimler yüklenirken hata:', error);
+        }
+      }
+    };
+
+    loadNotifications();
+    
+    // Her 30 saniyede bir bildirimleri kontrol et
+    const interval = setInterval(loadNotifications, 30000);
+    
+    return () => clearInterval(interval);
+  }, [user]);
 
   const getRoleColor = () => {
     if (isAdmin) return '#667eea';
@@ -358,14 +486,17 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
             {/* md+ full actions */}
             <Box sx={{ display: { xs: 'none', md: 'flex' }, alignItems: 'center', gap: 1 }}>
               <Tooltip title="Bildirimler">
-                <IconButton sx={{ color: 'white', background: 'rgba(255, 255, 255, 0.1)', backdropFilter: 'blur(10px)', '&:hover': { background: 'rgba(255, 255, 255, 0.2)', transform: 'scale(1.05)' } }}>
-                  <Badge badgeContent={0} color="error">
+                <IconButton 
+                  onClick={openNotifications}
+                  sx={{ color: 'white', background: 'rgba(255, 255, 255, 0.1)', backdropFilter: 'blur(10px)', '&:hover': { background: 'rgba(255, 255, 255, 0.2)', transform: 'scale(1.05)' } }}
+                >
+                  <Badge badgeContent={unreadNotifications} color="error">
                     <Bell size={24} />
                   </Badge>
                 </IconButton>
               </Tooltip>
               <Tooltip title="Verileri Yenile">
-                <IconButton onClick={() => window.location.reload()} sx={{ color: 'white', background: 'rgba(255, 255, 255, 0.1)', backdropFilter: 'blur(10px)', '&:hover': { background: 'rgba(255, 255, 255, 0.2)', transform: 'scale(1.05)' } }}>
+                <IconButton onClick={() => console.log('Refresh clicked')} sx={{ color: 'white', background: 'rgba(255, 255, 255, 0.1)', backdropFilter: 'blur(10px)', '&:hover': { background: 'rgba(255, 255, 255, 0.2)', transform: 'scale(1.05)' } }}>
                   <RefreshCw size={24} />
                 </IconButton>
               </Tooltip>
@@ -402,7 +533,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                   <ListItemIcon><UserAvatar size={28} role={user?.role?.toLowerCase()} /></ListItemIcon>
                   <ListItemText primary={user?.name || 'Profil'} secondary={getRoleText()} />
                 </MenuItem>
-                <MenuItem onClick={() => { window.location.reload(); closeMore(); }}>
+                <MenuItem onClick={() => { console.log('Refresh clicked'); closeMore(); }}>
                   <ListItemIcon><RefreshCw size={18} /></ListItemIcon>
                   <ListItemText primary="Yenile" />
                 </MenuItem>
@@ -490,6 +621,164 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
         <Toolbar />
         {children}
       </Box>
+
+      {/* Bildirim Dropdown */}
+      <Menu
+        anchorEl={notificationAnchor}
+        open={Boolean(notificationAnchor)}
+        onClose={closeNotifications}
+        PaperProps={{
+          sx: {
+            mt: 1,
+            minWidth: 350,
+            maxWidth: 450,
+            maxHeight: 500,
+            background: 'rgba(255, 255, 255, 0.95)',
+            backdropFilter: 'blur(20px)',
+            border: '1px solid rgba(255, 255, 255, 0.2)',
+            borderRadius: 3,
+            boxShadow: '0 8px 32px rgba(0, 0, 0, 0.15)',
+          },
+        }}
+        transformOrigin={{ horizontal: 'right', vertical: 'top' }}
+        anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
+      >
+        <Box sx={{ p: 2, borderBottom: '1px solid rgba(0, 0, 0, 0.1)' }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <Typography variant="h6" fontWeight="700" sx={{ color: 'text.primary' }}>
+              Bildirimler
+            </Typography>
+            {unreadNotifications > 0 && (
+              <Chip 
+                label={unreadNotifications} 
+                size="small" 
+                color="error" 
+                sx={{ fontWeight: 600 }}
+              />
+            )}
+          </Box>
+        </Box>
+        
+        <Box sx={{ maxHeight: 400, overflowY: 'auto' }}>
+          {notifications.length === 0 ? (
+            <Box sx={{ p: 3, textAlign: 'center' }}>
+              <Bell size={48} style={{ color: '#ccc', marginBottom: 16 }} />
+              <Typography variant="body2" color="text.secondary">
+                Henüz bildirim yok
+              </Typography>
+            </Box>
+          ) : (
+            notifications.map((notification) => (
+              <MenuItem
+                key={notification.id}
+                onClick={() => handleNotificationClick(notification)}
+                sx={{
+                  p: 2,
+                  borderBottom: '1px solid rgba(0, 0, 0, 0.05)',
+                  background: notification.isRead ? 'transparent' : 'rgba(25, 118, 210, 0.04)',
+                  '&:hover': {
+                    background: notification.isRead ? 'rgba(0, 0, 0, 0.04)' : 'rgba(25, 118, 210, 0.08)',
+                  },
+                }}
+              >
+                <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 2, width: '100%' }}>
+                  <Avatar
+                    sx={{
+                      width: 40,
+                      height: 40,
+                      background: notification.type === 'order' 
+                        ? 'linear-gradient(135deg, #ff6b6b, #ee5a24)'
+                        : notification.type === 'delivery'
+                        ? 'linear-gradient(135deg, #4facfe, #00f2fe)'
+                        : 'linear-gradient(135deg, #667eea, #764ba2)',
+                      fontSize: '1rem',
+                    }}
+                  >
+                    {notification.type === 'order' && <ShoppingCart size={20} />}
+                    {notification.type === 'delivery' && <Truck size={20} />}
+                    {notification.type === 'system' && <AlertCircle size={20} />}
+                  </Avatar>
+                  
+                  <Box sx={{ flex: 1, minWidth: 0 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
+                      <Typography 
+                        variant="subtitle2" 
+                        fontWeight={notification.isRead ? 500 : 700}
+                        sx={{ 
+                          color: 'text.primary',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap'
+                        }}
+                      >
+                        {notification.title}
+                      </Typography>
+                      {notification.priority === 'high' && (
+                        <Chip 
+                          label="Öncelikli" 
+                          size="small" 
+                          color="error" 
+                          sx={{ fontSize: '0.7rem', height: 20 }}
+                        />
+                      )}
+                      {!notification.isRead && (
+                        <Box sx={{ 
+                          width: 8, 
+                          height: 8, 
+                          borderRadius: '50%', 
+                          background: '#1976d2',
+                          ml: 'auto'
+                        }} />
+                      )}
+                    </Box>
+                    
+                    <Typography 
+                      variant="body2" 
+                      color="text.secondary"
+                      sx={{ 
+                        mb: 1,
+                        display: '-webkit-box',
+                        WebkitLineClamp: 2,
+                        WebkitBoxOrient: 'vertical',
+                        overflow: 'hidden',
+                      }}
+                    >
+                      {notification.message}
+                    </Typography>
+                    
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <Clock size={14} style={{ color: '#999' }} />
+                      <Typography variant="caption" color="text.secondary">
+                        {new Date(notification.createdAt).toLocaleTimeString('tr-TR', { 
+                          hour: '2-digit', 
+                          minute: '2-digit' 
+                        })}
+                      </Typography>
+                    </Box>
+                  </Box>
+                </Box>
+              </MenuItem>
+            ))
+          )}
+        </Box>
+        
+        {notifications.length > 0 && unreadNotifications > 0 && (
+          <Box sx={{ p: 2, borderTop: '1px solid rgba(0, 0, 0, 0.1)' }}>
+            <Button
+              fullWidth
+              variant="text"
+              onClick={markAllAsRead}
+              sx={{ 
+                color: 'primary.main',
+                fontWeight: 600,
+                textTransform: 'none'
+              }}
+            >
+              Tümünü Okundu İşaretle
+            </Button>
+          </Box>
+        )}
+      </Menu>
     </Box>
   );
 };

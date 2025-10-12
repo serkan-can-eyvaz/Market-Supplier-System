@@ -85,7 +85,6 @@ const SettingsPage: React.FC = () => {
     language: 'tr',
     theme: 'light',
     supplierAddress: '',
-    routeStart: 'address' as 'address' | 'mylocation',
   });
 
   useEffect(() => {
@@ -115,7 +114,6 @@ const SettingsPage: React.FC = () => {
           setSystemSettings((prev) => ({
             ...prev,
             supplierAddress: ss.supplierAddress || '',
-            routeStart: ss.routeStart || 'address',
           }));
         } finally {
           setLoading(false);
@@ -186,7 +184,6 @@ const SettingsPage: React.FC = () => {
       await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate API call
       localStorage.setItem('supplier_settings', JSON.stringify({
         supplierAddress: systemSettings.supplierAddress,
-        routeStart: systemSettings.routeStart,
       }));
       showSnackbar('Sistem ayarları güncellendi!', 'success');
     } catch (error) {
@@ -653,17 +650,6 @@ const SettingsPage: React.FC = () => {
                               value={systemSettings.supplierAddress}
                               onChange={(e) => setSystemSettings({ ...systemSettings, supplierAddress: e.target.value })}
                             />
-                            <TextField
-                              fullWidth
-                              select
-                              label="Başlangıç Noktası"
-                              value={systemSettings.routeStart}
-                              onChange={(e) => setSystemSettings({ ...systemSettings, routeStart: e.target.value as any })}
-                              SelectProps={{ native: true }}
-                            >
-                              <option value="address">Tedarikçi Adresi</option>
-                              <option value="mylocation">Konumum</option>
-                            </TextField>
 
                             <Alert severity="info" sx={{ mt: 2 }}>
                               <Typography variant="body2">

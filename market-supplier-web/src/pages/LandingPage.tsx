@@ -420,8 +420,8 @@ const LandingPage: React.FC = () => {
                 İletişim
               </Typography>
               <Typography variant="body2" sx={{ opacity: 0.8 }}>
-                Web: tedarikasistani.com<br />
-                Email: info@tedarikasistani.com<br />
+                Web: localhost:3000<br />
+                Email: info@localhost.com<br />
                 WhatsApp: +90 XXX XXX XX XX
               </Typography>
             </Box>

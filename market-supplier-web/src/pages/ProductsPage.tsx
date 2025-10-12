@@ -70,12 +70,17 @@ const ProductsPage: React.FC = () => {
     stockQuantity: 0,
   });
 
+  const [displayPrice, setDisplayPrice] = useState<string>('');
+  const [displayStock, setDisplayStock] = useState<string>('');
+
   const [stockEditId, setStockEditId] = useState<number | null>(null);
   const [stockEditValue, setStockEditValue] = useState<number>(0);
+  const [displayStockEdit, setDisplayStockEdit] = useState<string>('');
   
   // Fiyat düzenleme için state
   const [priceEditId, setPriceEditId] = useState<number | null>(null);
   const [priceEditValue, setPriceEditValue] = useState<number>(0);
+  const [displayPriceEdit, setDisplayPriceEdit] = useState<string>('');
   const [openPriceDialog, setOpenPriceDialog] = useState(false);
 
   const fetchProducts = useCallback(async (page: number = 0) => {
@@ -93,12 +98,11 @@ const ProductsPage: React.FC = () => {
           totalElements: productList.length,
           totalPages: 1
         });
-      } else if (showInactive) {
-        const productList = await apiService.getAllProducts();
-        setProducts(productList);
-        // getAllProducts returns a simple array, no pagination
       } else {
-        const response: PaginatedResponse<Product> = await apiService.getProducts(page, 10);
+        // Tedarikçi için ürün listesi
+        // showInactive=true ise sadece pasif ürünleri getir
+        const filter = showInactive ? 'inactive' : 'active';
+        const response: PaginatedResponse<Product> = await apiService.getProducts(page, 10, 'createdAt', 'desc', filter);
         setProducts(response.content || []);
         setPagination({
           page: response.page,
@@ -112,7 +116,7 @@ const ProductsPage: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [showInactive, isAdmin]);
+  }, [isAdmin, showInactive]);
 
   useEffect(() => {
     if (isSupplier || isAdmin) {
@@ -129,6 +133,8 @@ const ProductsPage: React.FC = () => {
       price: 0,
       stockQuantity: 0,
     });
+    setDisplayPrice('');
+    setDisplayStock('');
     setOpenDialog(true);
   };
 
@@ -141,6 +147,8 @@ const ProductsPage: React.FC = () => {
       price: product.price,
       stockQuantity: product.stockQuantity ?? 0,
     });
+    setDisplayPrice(product.price.toString());
+    setDisplayStock((product.stockQuantity ?? 0).toString());
     setOpenDialog(true);
   };
 
@@ -213,6 +221,7 @@ const ProductsPage: React.FC = () => {
   const openStockDialog = (p: Product) => {
     setStockEditId(p.id);
     setStockEditValue(p.stockQuantity ?? 0);
+    setDisplayStockEdit((p.stockQuantity ?? 0).toString());
   };
 
   const saveStock = async () => {
@@ -226,9 +235,8 @@ const ProductsPage: React.FC = () => {
     }
   };
 
-  const filteredProducts = products.filter(product => 
-    showInactive || product.isActive
-  );
+  // Artık backend'den doğru ürünler geliyor, filtreleme gerekmiyor
+  const filteredProducts = products;
 
   const handleRefresh = () => {
     fetchProducts(0);
@@ -238,6 +246,7 @@ const ProductsPage: React.FC = () => {
   const handleEditPrice = (product: Product) => {
     setPriceEditId(product.id);
     setPriceEditValue(product.price);
+    setDisplayPriceEdit(product.price.toString());
     setOpenPriceDialog(true);
   };
 
@@ -259,6 +268,7 @@ const ProductsPage: React.FC = () => {
     setOpenPriceDialog(false);
     setPriceEditId(null);
     setPriceEditValue(0);
+    setDisplayPriceEdit('');
   };
 
   if (!isSupplier && !isAdmin) {
@@ -438,7 +448,7 @@ const ProductsPage: React.FC = () => {
                           }}
                         />
                       }
-                      label="Pasif ürünleri göster"
+                      label="Sadece pasif ürünleri göster"
                       sx={{ color: 'text.secondary', fontWeight: 'medium' }}
                     />
                   </Box>
@@ -485,57 +495,104 @@ const ProductsPage: React.FC = () => {
                   )}
                 </Box>
               ) : (
-                <TableContainer>
-                  <Table>
-                    <TableHead>
-                      <TableRow sx={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' }}>
-                        <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>{isAdmin ? 'Kalem Adı' : 'Ürün Adı'}</TableCell>
-                        <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Açıklama</TableCell>
-                        <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Birim</TableCell>
-                        <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Fiyat</TableCell>
-                        <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Stok</TableCell>
-                        <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Durum</TableCell>
-                        <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Oluşturulma</TableCell>
-                        <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>İşlemler</TableCell>
-                      </TableRow>
-                    </TableHead>
-                    <TableBody>
-                      {filteredProducts.map((product, index) => (
-                        <TableRow 
-                          key={product.id}
-                          sx={{
-                            '&:hover': {
-                              background: 'rgba(76, 175, 80, 0.05)'
-                            },
-                            '&:nth-of-type(even)': {
-                              background: 'rgba(0, 0, 0, 0.02)'
-                            }
-                          }}
-                        >
-                          <TableCell>
-                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                              <LogoIcon size={40} />
-                              <Typography variant="subtitle2" fontWeight="bold">
-                                {product.name}
-                              </Typography>
+                <Box sx={{ p: 3 }}>
+                  <Box sx={{ 
+                    display: 'grid', 
+                    gridTemplateColumns: { 
+                      xs: '1fr', 
+                      sm: 'repeat(auto-fit, minmax(350px, 1fr))' 
+                    }, 
+                    gap: 3 
+                  }}>
+                    {filteredProducts.map((product) => (
+                      <Card 
+                        key={product.id}
+                        sx={{
+                          background: 'rgba(255, 255, 255, 0.95)',
+                          backdropFilter: 'blur(20px)',
+                          borderRadius: 3,
+                          border: '1px solid rgba(255, 255, 255, 0.2)',
+                          boxShadow: '0 8px 32px rgba(0, 0, 0, 0.1)',
+                          transition: 'all 0.3s ease',
+                          '&:hover': {
+                            transform: 'translateY(-4px)',
+                            boxShadow: '0 12px 40px rgba(0, 0, 0, 0.15)',
+                            border: '1px solid rgba(102, 126, 234, 0.3)'
+                          }
+                        }}
+                      >
+                        <CardContent sx={{ p: 3 }}>
+                          {/* Header */}
+                          <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', mb: 2 }}>
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flex: 1 }}>
+                              <LogoIcon size={32} />
+                              <Box sx={{ minWidth: 0, flex: 1 }}>
+                                <Typography 
+                                  variant="h6" 
+                                  fontWeight="bold" 
+                                  sx={{ 
+                                    mb: 0.5,
+                                    color: 'text.primary',
+                                    lineHeight: 1.2
+                                  }}
+                                >
+                                  {product.name}
+                                </Typography>
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                  <Chip
+                                    label={product.isActive ? 'Aktif' : 'Pasif'}
+                                    color={product.isActive ? 'success' : 'default'}
+                                    size="small"
+                                    icon={product.isActive ? <VisibilityIcon /> : <VisibilityOffIcon />}
+                                  />
+                                  <Chip
+                                    label={product.unit}
+                                    color="info"
+                                    size="small"
+                                    variant="outlined"
+                                  />
+                                </Box>
+                              </Box>
                             </Box>
-                          </TableCell>
-                          <TableCell>
-                            <Typography variant="body2" color="text.secondary" sx={{ maxWidth: 200 }}>
-                              {product.description || '-'}
-                            </Typography>
-                          </TableCell>
-                          <TableCell>
-                            <Chip
-                              label={product.unit}
-                              color="info"
+                            <IconButton
                               size="small"
-                              icon={<CategoryIcon />}
-                            />
-                          </TableCell>
-                          <TableCell>
+                              onClick={() => handleToggleStatus(product.id)}
+                              title={product.isActive ? 'Pasif yap' : 'Aktif yap'}
+                              sx={{
+                                background: product.isActive ? 'rgba(255, 152, 0, 0.1)' : 'rgba(76, 175, 80, 0.1)',
+                                color: product.isActive ? 'warning.main' : 'success.main',
+                                '&:hover': {
+                                  background: product.isActive ? 'rgba(255, 152, 0, 0.2)' : 'rgba(76, 175, 80, 0.2)',
+                                  transform: 'scale(1.1)'
+                                }
+                              }}
+                            >
+                              {product.isActive ? <VisibilityOffIcon /> : <VisibilityIcon />}
+                            </IconButton>
+                          </Box>
+
+                          {/* Description */}
+                          {product.description && (
+                            <Typography 
+                              variant="body2" 
+                              color="text.secondary" 
+                              sx={{ 
+                                mb: 2,
+                                lineHeight: 1.4,
+                                display: '-webkit-box',
+                                WebkitLineClamp: 2,
+                                WebkitBoxOrient: 'vertical',
+                                overflow: 'hidden'
+                              }}
+                            >
+                              {product.description}
+                            </Typography>
+                          )}
+
+                          {/* Price and Stock */}
+                          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                              <Typography variant="subtitle2" fontWeight="bold" color="success.main">
+                              <Typography variant="h6" fontWeight="bold" color="success.main">
                                 ₺{product.price.toFixed(2)}
                               </Typography>
                               {isAdmin && (
@@ -551,46 +608,33 @@ const ProductsPage: React.FC = () => {
                                 </IconButton>
                               )}
                             </Box>
-                          </TableCell>
-                          <TableCell>
-                            <Stack direction="row" spacing={1} alignItems="center">
-                              <Chip label={(product.stockQuantity ?? 0).toString()} color={(product.stockQuantity ?? 0) > 0 ? 'success' : 'default'} size="small" />
-                              <Button size="small" variant="outlined" onClick={() => openStockDialog(product)}>Düzenle</Button>
-                            </Stack>
-                          </TableCell>
-                          <TableCell>
-                            <Chip
-                              label={product.isActive ? 'Aktif' : 'Pasif'}
-                              color={product.isActive ? 'success' : 'default'}
-                              size="small"
-                              icon={product.isActive ? <VisibilityIcon /> : <VisibilityOffIcon />}
-                            />
-                          </TableCell>
-                          <TableCell>
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                              <Chip 
+                                label={`Stok: ${(product.stockQuantity ?? 0)}`} 
+                                color={(product.stockQuantity ?? 0) > 0 ? 'success' : 'default'} 
+                                size="small" 
+                                variant="outlined"
+                              />
+                              <Button 
+                                size="small" 
+                                variant="outlined" 
+                                onClick={() => openStockDialog(product)}
+                                sx={{ minWidth: 'auto', px: 1 }}
+                              >
+                                Düzenle
+                              </Button>
+                            </Box>
+                          </Box>
+
+                          {/* Footer */}
+                          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', pt: 2, borderTop: '1px solid rgba(0, 0, 0, 0.1)' }}>
                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                               <ScheduleIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
                               <Typography variant="body2" color="text.secondary">
                                 {new Date(product.createdAt).toLocaleDateString('tr-TR')}
                               </Typography>
                             </Box>
-                          </TableCell>
-                          <TableCell>
                             <Stack direction="row" spacing={1}>
-                              <IconButton
-                                size="small"
-                                onClick={() => handleToggleStatus(product.id)}
-                                title={product.isActive ? 'Pasif yap' : 'Aktif yap'}
-                                sx={{
-                                  background: product.isActive ? 'rgba(255, 152, 0, 0.1)' : 'rgba(76, 175, 80, 0.1)',
-                                  color: product.isActive ? 'warning.main' : 'success.main',
-                                  '&:hover': {
-                                    background: product.isActive ? 'rgba(255, 152, 0, 0.2)' : 'rgba(76, 175, 80, 0.2)',
-                                    transform: 'scale(1.1)'
-                                  }
-                                }}
-                              >
-                                {product.isActive ? <VisibilityOffIcon /> : <VisibilityIcon />}
-                              </IconButton>
                               <IconButton
                                 size="small"
                                 onClick={() => handleEditProduct(product)}
@@ -602,6 +646,7 @@ const ProductsPage: React.FC = () => {
                                     transform: 'scale(1.1)'
                                   }
                                 }}
+                                title="Düzenle"
                               >
                                 <EditIcon />
                               </IconButton>
@@ -616,16 +661,17 @@ const ProductsPage: React.FC = () => {
                                     transform: 'scale(1.1)'
                                   }
                                 }}
+                                title="Sil"
                               >
                                 <DeleteIcon />
                               </IconButton>
                             </Stack>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </TableContainer>
+                          </Box>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </Box>
+                </Box>
               )}
             </Paper>
           </Fade>
@@ -718,21 +764,49 @@ const ProductsPage: React.FC = () => {
                 <TextField
                   fullWidth
                   label="Birim Fiyat (₺)"
-                  type="number"
-                  value={formData.price}
-                  onChange={(e) => setFormData({ ...formData, price: parseFloat(e.target.value) || 0 })}
+                  type="text"
+                  value={displayPrice}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    setDisplayPrice(value);
+                    const numValue = parseFloat(value) || 0;
+                    setFormData({ ...formData, price: numValue });
+                  }}
                   margin="normal"
                   required
-                  inputProps={{ min: 0, step: 0.01 }}
+                  placeholder="0.00"
+                  inputProps={{ 
+                    inputMode: 'decimal',
+                    pattern: '[0-9]*'
+                  }}
+                  InputProps={{
+                    inputProps: {
+                      style: { textAlign: 'right' }
+                    }
+                  }}
                 />
                 <TextField
                   fullWidth
                   label="Stok Miktarı"
-                  type="number"
-                  value={formData.stockQuantity}
-                  onChange={(e) => setFormData({ ...formData, stockQuantity: Math.max(0, parseInt(e.target.value || '0', 10)) })}
+                  type="text"
+                  value={displayStock}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    setDisplayStock(value);
+                    const numValue = Math.max(0, parseInt(value || '0', 10));
+                    setFormData({ ...formData, stockQuantity: numValue });
+                  }}
                   margin="normal"
-                  inputProps={{ min: 0, step: 1 }}
+                  placeholder="0"
+                  inputProps={{ 
+                    inputMode: 'numeric',
+                    pattern: '[0-9]*'
+                  }}
+                  InputProps={{
+                    inputProps: {
+                      style: { textAlign: 'right' }
+                    }
+                  }}
                 />
               </Box>
             </DialogContent>
@@ -754,7 +828,7 @@ const ProductsPage: React.FC = () => {
               <Button
                 variant="contained"
                 onClick={handleSaveProduct}
-                disabled={!formData.name.trim() || formData.price <= 0}
+                disabled={!formData.name.trim() || !displayPrice.trim() || formData.price <= 0}
                 sx={{
                   background: 'linear-gradient(135deg, #4caf50 0%, #8bc34a 100%)',
                   '&:hover': {
@@ -775,11 +849,25 @@ const ProductsPage: React.FC = () => {
                 fullWidth
                 autoFocus
                 label="Stok Miktarı"
-                type="number"
-                value={stockEditValue}
-                onChange={(e) => setStockEditValue(Math.max(0, parseInt(e.target.value || '0', 10)))}
+                type="text"
+                value={displayStockEdit}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setDisplayStockEdit(value);
+                  const numValue = Math.max(0, parseInt(value || '0', 10));
+                  setStockEditValue(numValue);
+                }}
                 margin="normal"
-                inputProps={{ min: 0, step: 1 }}
+                placeholder="0"
+                inputProps={{ 
+                  inputMode: 'numeric',
+                  pattern: '[0-9]*'
+                }}
+                InputProps={{
+                  inputProps: {
+                    style: { textAlign: 'right' }
+                  }
+                }}
               />
             </DialogContent>
             <DialogActions>
@@ -795,14 +883,23 @@ const ProductsPage: React.FC = () => {
               <TextField
                 fullWidth
                 label="Yeni Fiyat (₺)"
-                type="number"
-                value={priceEditValue}
-                onChange={(e) => setPriceEditValue(parseFloat(e.target.value) || 0)}
+                type="text"
+                value={displayPriceEdit}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setDisplayPriceEdit(value);
+                  const numValue = parseFloat(value) || 0;
+                  setPriceEditValue(numValue);
+                }}
                 margin="normal"
+                placeholder="0.00"
                 InputProps={{
                   startAdornment: <InputAdornment position="start">₺</InputAdornment>,
                 }}
-                inputProps={{ min: 0, step: 0.01 }}
+                inputProps={{ 
+                  inputMode: 'decimal',
+                  pattern: '[0-9]*'
+                }}
               />
             </DialogContent>
             <DialogActions>
@@ -810,7 +907,7 @@ const ProductsPage: React.FC = () => {
               <Button 
                 onClick={handleSavePrice} 
                 variant="contained"
-                disabled={priceEditValue < 0}
+                disabled={!displayPriceEdit.trim() || priceEditValue < 0}
                 sx={{
                   background: 'linear-gradient(135deg, #4caf50 0%, #8bc34a 100%)',
                   '&:hover': {

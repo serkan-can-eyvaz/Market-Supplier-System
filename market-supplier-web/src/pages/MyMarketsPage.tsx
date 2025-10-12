@@ -6,7 +6,6 @@ import {
   Alert,
   List,
   ListItem,
-  ListItemText,
   ListItemIcon,
   ListItemSecondaryAction,
   Stack,
@@ -27,6 +26,8 @@ import {
   Slide,
   Divider,
   LinearProgress,
+  TextField,
+  InputAdornment,
 } from '@mui/material';
 import {
   Delete as DeleteIcon,
@@ -38,6 +39,8 @@ import {
   Edit as EditIcon,
   Refresh as RefreshIcon,
   Business as BusinessIcon,
+  Save as SaveIcon,
+  Cancel as CancelIcon,
 } from '@mui/icons-material';
 import { useAuth } from '../contexts/AuthContext';
 import apiService from '../services/api';
@@ -60,6 +63,14 @@ const MyMarketsPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [marketToDelete, setMarketToDelete] = useState<Market | null>(null);
+  const [updateDialogOpen, setUpdateDialogOpen] = useState(false);
+  const [marketToUpdate, setMarketToUpdate] = useState<Market | null>(null);
+  const [updateFormData, setUpdateFormData] = useState({
+    name: '',
+    address: '',
+    phone: ''
+  });
+  const [updateLoading, setUpdateLoading] = useState(false);
   const navigate = useNavigate();
 
   const loadMarkets = async (page: number = pagination.page) => {
@@ -107,6 +118,39 @@ const MyMarketsPage: React.FC = () => {
   const handleDeleteCancel = () => {
     setDeleteDialogOpen(false);
     setMarketToDelete(null);
+  };
+
+  const handleUpdateClick = (market: Market) => {
+    setMarketToUpdate(market);
+    setUpdateFormData({
+      name: market.name,
+      address: market.address,
+      phone: market.phone
+    });
+    setUpdateDialogOpen(true);
+  };
+
+  const handleUpdateConfirm = async () => {
+    if (!marketToUpdate) return;
+    
+    try {
+      setUpdateLoading(true);
+      await apiService.updateMarket(marketToUpdate.id, updateFormData);
+      await loadMarkets(pagination.page);
+      setUpdateDialogOpen(false);
+      setMarketToUpdate(null);
+      setUpdateFormData({ name: '', address: '', phone: '' });
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Market güncellenirken hata oluştu');
+    } finally {
+      setUpdateLoading(false);
+    }
+  };
+
+  const handleUpdateCancel = () => {
+    setUpdateDialogOpen(false);
+    setMarketToUpdate(null);
+    setUpdateFormData({ name: '', address: '', phone: '' });
   };
 
   const handleRefresh = () => {
@@ -251,31 +295,28 @@ const MyMarketsPage: React.FC = () => {
                       <ListItemIcon>
                         <LogoIcon><StorefrontIcon /></LogoIcon>
                       </ListItemIcon>
-                      <ListItemText
-                        primary={
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5, flexWrap: 'wrap' }}>
-                            <Typography variant="subtitle1" fontWeight="bold" sx={{ mr: 1 }}>{market.name}</Typography>
-                            {market.orderCount && market.orderCount > 0 && (
-                              <Chip label={`${market.orderCount} sipariş`} color="info" size="small" />
-                            )}
+                      <Box sx={{ flex: 1, minWidth: 0 }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5, flexWrap: 'wrap' }}>
+                          <Typography variant="subtitle1" fontWeight="bold" sx={{ mr: 1 }}>{market.name}</Typography>
+                          {market.orderCount && market.orderCount > 0 && (
+                            <Chip label={`${market.orderCount} sipariş`} color="info" size="small" />
+                          )}
+                        </Box>
+                        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                            <LocationIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
+                            <Typography variant="body2" color="text.secondary" component="span">{market.address}</Typography>
                           </Box>
-                        }
-                        secondary={
-                          <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 0.5 }}>
-                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                              <LocationIcon sx={{ fontSize: 18, color: 'text.secondary' }} />
-                              <Typography variant="body2" color="text.secondary">{market.address}</Typography>
-                            </Box>
-                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                              <PhoneIcon sx={{ fontSize: 18, color: 'text.secondary' }} />
-                              <Typography variant="body2" color="text.secondary">{market.phone}</Typography>
-                            </Box>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                            <PhoneIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
+                            <Typography variant="body2" color="text.secondary" component="span">{market.phone}</Typography>
                           </Box>
-                        }
-                      />
+                        </Box>
+                      </Box>
                       <ListItemSecondaryAction>
                         <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
                           <Button size="small" variant="contained" onClick={() => navigate(`/markets/${market.id}`)} sx={{ px: 1.25, py: 0.5 }}>Detay</Button>
+                          <Button size="small" variant="contained" color="primary" onClick={() => handleUpdateClick(market)} sx={{ px: 1.25, py: 0.5 }}>Güncelle</Button>
                           <Button size="small" color="error" variant="contained" onClick={() => handleDeleteClick(market)} sx={{ px: 1.25, py: 0.5 }}>Sil</Button>
                         </Stack>
                       </ListItemSecondaryAction>
@@ -386,6 +427,133 @@ const MyMarketsPage: React.FC = () => {
             }}
           >
             Sil
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Güncelleme Dialogu */}
+      <Dialog
+        open={updateDialogOpen}
+        onClose={handleUpdateCancel}
+        aria-labelledby="update-dialog-title"
+        maxWidth="sm"
+        fullWidth
+        PaperProps={{
+          sx: {
+            background: 'rgba(255, 255, 255, 0.95)',
+            backdropFilter: 'blur(20px)',
+            borderRadius: 4
+          }
+        }}
+      >
+        <DialogTitle id="update-dialog-title" sx={{ 
+          background: 'linear-gradient(135deg, #2196f3 0%, #1976d2 100%)',
+          color: 'white',
+          borderRadius: '16px 16px 0 0'
+        }}>
+          Market Güncelleme
+        </DialogTitle>
+        <DialogContent sx={{ p: 3 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
+            <BusinessIcon sx={{ fontSize: 40, color: 'primary.main' }} />
+            <Typography variant="h6" fontWeight="bold">
+              "{marketToUpdate?.name}" marketini güncelle
+            </Typography>
+          </Box>
+          
+          <Stack spacing={3}>
+            <TextField
+              fullWidth
+              label="Market Adı"
+              required
+              value={updateFormData.name}
+              onChange={(e) => setUpdateFormData(prev => ({ ...prev, name: e.target.value }))}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <StorefrontIcon sx={{ color: 'text.secondary' }} />
+                  </InputAdornment>
+                ),
+              }}
+              sx={{
+                '& .MuiOutlinedInput-root': {
+                  borderRadius: 2
+                }
+              }}
+            />
+
+            <TextField
+              fullWidth
+              label="Adres"
+              required
+              multiline
+              rows={3}
+              value={updateFormData.address}
+              onChange={(e) => setUpdateFormData(prev => ({ ...prev, address: e.target.value }))}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start" sx={{ alignSelf: 'flex-start', mt: 1 }}>
+                    <LocationIcon sx={{ color: 'text.secondary' }} />
+                  </InputAdornment>
+                ),
+              }}
+              sx={{
+                '& .MuiOutlinedInput-root': {
+                  borderRadius: 2
+                }
+              }}
+            />
+
+            <TextField
+              fullWidth
+              label="Telefon"
+              required
+              value={updateFormData.phone}
+              onChange={(e) => setUpdateFormData(prev => ({ ...prev, phone: e.target.value }))}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <PhoneIcon sx={{ color: 'text.secondary' }} />
+                  </InputAdornment>
+                ),
+              }}
+              sx={{
+                '& .MuiOutlinedInput-root': {
+                  borderRadius: 2
+                }
+              }}
+            />
+          </Stack>
+        </DialogContent>
+        <DialogActions sx={{ p: 3, gap: 2 }}>
+          <Button 
+            onClick={handleUpdateCancel}
+            variant="outlined"
+            disabled={updateLoading}
+            sx={{ 
+              borderColor: 'grey.400',
+              color: 'grey.600',
+              '&:hover': {
+                borderColor: 'grey.600',
+                background: 'rgba(0, 0, 0, 0.04)'
+              }
+            }}
+          >
+            İptal
+          </Button>
+          <Button 
+            onClick={handleUpdateConfirm}
+            variant="contained"
+            disabled={updateLoading || !updateFormData.name.trim() || !updateFormData.address.trim() || !updateFormData.phone.trim()}
+            startIcon={<SaveIcon />}
+            sx={{
+              background: 'linear-gradient(135deg, #2196f3 0%, #1976d2 100%)',
+              '&:hover': {
+                background: 'linear-gradient(135deg, #1976d2 0%, #1565c0 100%)'
+              }
+            }}
+          >
+            {updateLoading ? 'Güncelleniyor...' : 'Güncelle'}
           </Button>
         </DialogActions>
       </Dialog>
